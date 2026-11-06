@@ -17,6 +17,8 @@ $trustedRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = 'C:\Users\Utente\TesiAgenticAI'
 $submissionSource = Join-Path $trustedRoot "fixtures\t5-r02-r03\$FixtureId"
 $reservedSource = Join-Path $trustedRoot 'reserved'
+$publicTestsSource = Join-Path $repositoryRoot 'BenchmarkTarget\tests\public'
+$publicConfigSource = Join-Path $repositoryRoot ("BenchmarkTarget\vitest.public.{0}.config.ts" -f $TaskId.ToLowerInvariant())
 $guestScriptSource = Join-Path $PSScriptRoot 'Run-ReservedTaskGuest.ps1'
 $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
 $dependencySource = Join-Path $repositoryRoot 'BenchmarkTarget\node_modules'
@@ -30,7 +32,8 @@ $submissionRoot = Join-Path $inputRoot 'submission'
 $runtimeRoot = Join-Path $inputRoot 'runtime'
 $outputRoot = Join-Path $runRoot 'worker-output'
 $evidenceRoot = Join-Path $runRoot 'evidence'
-$rawReportPath = Join-Path $outputRoot 'reserved-raw-report.json'
+$publicRawReportPath = Join-Path $outputRoot 'public-raw-report.json'
+$reservedRawReportPath = Join-Path $outputRoot 'reserved-raw-report.json'
 $guestResultPath = Join-Path $outputRoot 'guest-result.json'
 $manifestPath = Join-Path $evidenceRoot 'submission-manifest.json'
 $summaryPath = Join-Path $evidenceRoot 'evaluation-summary.json'
@@ -96,6 +99,28 @@ function Get-ActiveSandboxCount {
     return @($result.WindowsSandboxEnvironments).Count
 }
 
+function Read-VitestReport {
+    param([string]$Path)
+    $report = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+    $reportCounts = [ordered]@{
+        total = [int]$report.numTotalTests
+        passed = [int]$report.numPassedTests
+        failed = [int]$report.numFailedTests
+        skipped = [int]$report.numPendingTests
+        todo = [int]$report.numTodoTests
+    }
+    if ($reportCounts.total -le 0 -or
+        @($reportCounts.Values | Where-Object { $_ -lt 0 }).Count -ne 0 -or
+        $reportCounts.total -ne ($reportCounts.passed + $reportCounts.failed + $reportCounts.skipped + $reportCounts.todo)) {
+        throw 'I conteggi del report non sono validi.'
+    }
+    $reportAssertions = @($report.testResults | ForEach-Object { $_.assertionResults })
+    if ($reportAssertions.Count -ne $reportCounts.total) {
+        throw 'Il numero degli esiti non coincide con il totale dichiarato.'
+    }
+    return [ordered]@{ counts = $reportCounts; assertions = $reportAssertions }
+}
+
 $repositoryPrefix = $repositoryRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 if ($trustedRoot.Equals($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -or
     $trustedRoot.StartsWith($repositoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
@@ -108,6 +133,10 @@ if ((Get-ActiveSandboxCount) -ne 0) {
 New-Item -ItemType Directory -Path $inputRoot, $runtimeRoot, $outputRoot, $evidenceRoot -Force | Out-Null
 Copy-Item -LiteralPath $submissionSource -Destination $submissionRoot -Recurse -Force
 Copy-Item -LiteralPath $reservedSource -Destination $inputRoot -Recurse -Force
+$publicSuiteRoot = Join-Path $inputRoot 'public-suite'
+New-Item -ItemType Directory -Path (Join-Path $publicSuiteRoot 'tests') -Force | Out-Null
+Copy-Item -LiteralPath $publicTestsSource -Destination (Join-Path $publicSuiteRoot 'tests\public') -Recurse -Force
+Copy-Item -LiteralPath $publicConfigSource -Destination (Join-Path $publicSuiteRoot 'vitest.public-task.config.ts') -Force
 Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-ReservedTaskGuest.ps1')
 Copy-Item -LiteralPath $nodePath -Destination (Join-Path $runtimeRoot 'node.exe')
 Copy-Item -LiteralPath $dependencySource -Destination (Join-Path $runtimeRoot 'node_modules') -Recurse -Force
@@ -139,8 +168,11 @@ $configuration = @"
 
 $evaluationStatus = 'evaluator-error'
 $errorCode = $null
+$publicCounts = [ordered]@{ total = $null; passed = $null; failed = $null; skipped = $null; todo = $null }
+$reservedCounts = [ordered]@{ total = $null; passed = $null; failed = $null; skipped = $null; todo = $null }
 $counts = [ordered]@{ total = $null; passed = $null; failed = $null; skipped = $null; todo = $null }
 $controlResults = @()
+$sharedCoverageResults = @()
 $controlResultsValid = $false
 $guestDurationMs = $null
 $networkDisabledObserved = $false
@@ -155,31 +187,20 @@ try {
     if ($exec.timedOut) {
         $errorCode = 'timeout'
     }
-    elseif (-not (Test-Path -LiteralPath $guestResultPath) -or -not (Test-Path -LiteralPath $rawReportPath)) {
+    elseif (-not (Test-Path -LiteralPath $guestResultPath) -or
+            -not (Test-Path -LiteralPath $publicRawReportPath) -or
+            -not (Test-Path -LiteralPath $reservedRawReportPath)) {
         $errorCode = 'missing-report'
     }
     else {
         try {
             $guestResult = Get-Content -Raw -LiteralPath $guestResultPath | ConvertFrom-Json
-            $rawReport = Get-Content -Raw -LiteralPath $rawReportPath | ConvertFrom-Json
-            $counts.total = [int]$rawReport.numTotalTests
-            $counts.passed = [int]$rawReport.numPassedTests
-            $counts.failed = [int]$rawReport.numFailedTests
-            $counts.skipped = [int]$rawReport.numPendingTests
-            $counts.todo = [int]$rawReport.numTodoTests
-
-            if ($counts.total -le 0) {
-                throw 'Il report non contiene test.'
-            }
-            if (@($counts.Values | Where-Object { $_ -lt 0 }).Count -ne 0 -or
-                $counts.total -ne ($counts.passed + $counts.failed + $counts.skipped + $counts.todo)) {
-                throw 'I conteggi del report non sono coerenti.'
-            }
-
-            $assertions = @($rawReport.testResults | ForEach-Object { $_.assertionResults })
-            if ($assertions.Count -ne $counts.total) {
-                throw 'Il numero degli esiti non coincide con il totale dichiarato.'
-            }
+            $publicReport = Read-VitestReport -Path $publicRawReportPath
+            $reservedReport = Read-VitestReport -Path $reservedRawReportPath
+            $publicCounts = $publicReport.counts
+            $reservedCounts = $reservedReport.counts
+            $publicAssertions = @($publicReport.assertions)
+            $assertions = @($reservedReport.assertions)
 
             $controlIdPattern = '^' + [regex]::Escape($TaskId) + '-R\d{2}'
             $controlTitlePattern = $controlIdPattern + '(?:-shared)?(?:\s+.+)?$'
@@ -209,10 +230,38 @@ try {
                 }
                 $result
             })
-            $controlResultsValid = ($controlResults.Count -eq $counts.total)
+            $controlResultsValid = ($controlResults.Count -eq $reservedCounts.total)
+
+            $sharedCoverageMap = [ordered]@{
+                'T2-R03' = 'T2-P02'
+                'T5-R02' = 'T5-P04'
+                'T6-R04' = 'T6-P03'
+            }
+            $deduplicatedTotal = 0
+            $deduplicatedPassed = 0
+            $deduplicatedFailed = 0
+            foreach ($control in $controlResults) {
+                if (-not $sharedCoverageMap.Contains($control.id)) { continue }
+                $publicId = [string]$sharedCoverageMap[$control.id]
+                $publicMatches = @($publicAssertions | Where-Object { [string]$_.title -match ('^' + [regex]::Escape($publicId) + '(?:\s+.+)?$') })
+                if ($publicMatches.Count -eq 0) { continue }
+                if ($publicMatches.Count -ne 1) { throw 'La copertura pubblica condivisa non e univoca.' }
+                $publicPassed = ([string]$publicMatches[0].status -eq 'passed')
+                $deduplicatedTotal++
+                if ($control.passed -and $publicPassed) { $deduplicatedPassed++ }
+                elseif (-not $control.passed -and -not $publicPassed) { $deduplicatedFailed++ }
+                else { $deduplicatedPassed++ }
+                $sharedCoverageResults += [ordered]@{ reservedId = $control.id; publicId = $publicId; countedOnce = $true }
+            }
+
+            $counts.total = $publicCounts.total + $reservedCounts.total - $deduplicatedTotal
+            $counts.passed = $publicCounts.passed + $reservedCounts.passed - $deduplicatedPassed
+            $counts.failed = $publicCounts.failed + $reservedCounts.failed - $deduplicatedFailed
+            $counts.skipped = $publicCounts.skipped + $reservedCounts.skipped
+            $counts.todo = $publicCounts.todo + $reservedCounts.todo
             $guestDurationMs = [int64]$guestResult.durationMs
             $networkDisabledObserved = [bool]$guestResult.noUpNonLoopbackAdapters
-            $evaluationStatus = if ([int]$guestResult.exitCode -eq 0 -and $counts.failed -eq 0) { 'completed' } else { 'test-failures' }
+            $evaluationStatus = if ([int]$guestResult.publicExitCode -eq 0 -and [int]$guestResult.reservedExitCode -eq 0 -and $counts.failed -eq 0) { 'completed' } else { 'test-failures' }
         }
         catch {
             $evaluationStatus = 'evaluator-error'
@@ -234,8 +283,12 @@ $manifestAfter = Get-TreeManifest -Root $submissionRoot
 $digestAfter = Get-ManifestDigest -Manifest $manifestAfter
 $activeSandboxCount = Get-ActiveSandboxCount
 $manifestUnchanged = ($digestBefore -eq $digestAfter)
-$allSelectedTestsExecuted = ($counts.total -gt 0 -and ($counts.passed + $counts.failed) -eq $counts.total -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
-$allControlsPassed = ($controlResults.Count -gt 0 -and @($controlResults | Where-Object { $_.passed -ne $true }).Count -eq 0)
+$allSelectedTestsExecuted = ($publicCounts.total -gt 0 -and $reservedCounts.total -gt 0 -and
+    ($publicCounts.passed + $publicCounts.failed) -eq $publicCounts.total -and
+    ($reservedCounts.passed + $reservedCounts.failed) -eq $reservedCounts.total -and
+    $publicCounts.skipped -eq 0 -and $publicCounts.todo -eq 0 -and
+    $reservedCounts.skipped -eq 0 -and $reservedCounts.todo -eq 0)
+$allControlsPassed = ($counts.total -gt 0 -and $counts.failed -eq 0 -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
 $evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -and $null -eq $errorCode -and $allSelectedTestsExecuted -and $controlResultsValid -and $manifestUnchanged -and $networkDisabledObserved -and $stopSucceeded -and $activeSandboxCount -eq 0)
 
 [ordered]@{
@@ -244,7 +297,12 @@ $evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -an
     runId = $runId
     submission = [ordered]@{ id = $submissionId; treeSha256 = $digestBefore }
     evaluator = [ordered]@{ status = $evaluationStatus; errorCode = $errorCode; successful = $evaluationReliable }
+    suites = [ordered]@{
+        public = [ordered]@{ counts = $publicCounts }
+        reserved = [ordered]@{ counts = $reservedCounts }
+    }
     controls = $controlResults
+    sharedCoverage = $sharedCoverageResults
     counts = $counts
     durationMs = [int64]([DateTimeOffset]::UtcNow - $startedAt).TotalMilliseconds
     guestDurationMs = $guestDurationMs
@@ -259,7 +317,8 @@ $evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -an
 
 Write-Output "RUN_ID=$runId"
 Write-Output "SUMMARY=$summaryPath"
-Write-Output "RAW_REPORT=$rawReportPath"
+Write-Output "PUBLIC_RAW_REPORT=$publicRawReportPath"
+Write-Output "RESERVED_RAW_REPORT=$reservedRawReportPath"
 if (-not $evaluationReliable) { exit 20 }
 if (-not $allControlsPassed) { exit 10 }
 exit 0
