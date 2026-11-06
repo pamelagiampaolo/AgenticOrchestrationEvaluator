@@ -14,6 +14,22 @@ manifest, machine-readable evidence, and execution logs under `runs/`.
 - `fixtures/`: compliant and violating submissions for architectural controls.
 - `runs/`: generated evaluation inputs, outputs, and evidence (not versioned).
 
+## Evaluator entry points
+
+- `Invoke-EvaluatorSmokeTest.ps1`: validates the evaluator itself with the
+  frozen arithmetic fixture; it does not execute a T1-T6 task.
+- `Invoke-T1R01CandidateIsolationEvaluation.ps1`: executes the dedicated
+  T1-R01 candidate-identity and reserved-file access proof.
+- `Invoke-T5R01RepositoryArchitectureEvaluation.ps1`: executes only T5-R01,
+  which checks that application logic depends on repository contracts.
+- `Invoke-SelectedTaskTestSuiteEvaluation.ps1 -TaskId T1|...|T6`: selects one
+  task and executes both its public suite and every matching reserved control
+  (`reserved/tN-r*.test.ts`).
+
+Each `Invoke-*` host entry point has a correspondingly named `Run-*Guest.ps1`
+worker. The worker is an implementation detail and is not invoked directly by
+the user.
+
 The evaluator currently expects the main repository at
 `C:\Users\Utente\TesiAgenticAI`. This path is configured in the host-side
 PowerShell scripts.

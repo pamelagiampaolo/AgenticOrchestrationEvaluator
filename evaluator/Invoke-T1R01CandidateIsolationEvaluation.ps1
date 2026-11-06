@@ -53,12 +53,12 @@ function Save-WsbExecDiagnostic {
     [ordered]@{ timedOut = [bool]$Result.timedOut; exitCode = $Result.exitCode } | ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 -LiteralPath $wsbExecResultPath
 }
 New-Item -ItemType Directory -Path (Join-Path $inputRoot 'runtime'),(Join-Path $inputRoot 'reserved'),(Join-Path $inputRoot 'candidate\submission\src'),$outputRoot,$evidenceRoot -Force | Out-Null
-Copy-Item $runtimeNode (Join-Path $inputRoot 'runtime\node.exe'); Copy-Item (Join-Path $trustedRoot 'reserved\t1-r01-ipc-runner.ps1') (Join-Path $inputRoot 'reserved\t1-r01-ipc-runner.ps1'); Copy-Item (Join-Path $PSScriptRoot 't1-candidate-host.mjs') (Join-Path $inputRoot 'candidate\t1-candidate-host.mjs'); Copy-Item (Join-Path $trustedRoot 'fixtures\t1-ipc-compliant\src\index.mjs') (Join-Path $inputRoot 'candidate\submission\src\index.mjs'); Copy-Item (Join-Path $PSScriptRoot 'Run-T1R01IsolatedGuest.ps1') (Join-Path $inputRoot 'Run-T1R01IsolatedGuest.ps1')
+Copy-Item $runtimeNode (Join-Path $inputRoot 'runtime\node.exe'); Copy-Item (Join-Path $trustedRoot 'reserved\t1-r01-ipc-runner.ps1') (Join-Path $inputRoot 'reserved\t1-r01-ipc-runner.ps1'); Copy-Item (Join-Path $PSScriptRoot 't1-candidate-host.mjs') (Join-Path $inputRoot 'candidate\t1-candidate-host.mjs'); Copy-Item (Join-Path $trustedRoot 'fixtures\t1-ipc-compliant\src\index.mjs') (Join-Path $inputRoot 'candidate\submission\src\index.mjs'); Copy-Item (Join-Path $PSScriptRoot 'Run-T1R01CandidateIsolationGuest.ps1') (Join-Path $inputRoot 'Run-T1R01CandidateIsolationGuest.ps1')
 $escapedInput = [Security.SecurityElement]::Escape($inputRoot); $escapedOutput = [Security.SecurityElement]::Escape($outputRoot)
 $configuration = "<Configuration><VGpu>Disable</VGpu><Networking>Disable</Networking><ClipboardRedirection>Disable</ClipboardRedirection><MappedFolders><MappedFolder><HostFolder>$escapedInput</HostFolder><SandboxFolder>C:\EvaluatorInput</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder><MappedFolder><HostFolder>$escapedOutput</HostFolder><SandboxFolder>C:\EvaluatorOutput</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder></MappedFolders></Configuration>"
 try {
     $startText = (& $wsbPath start --config $configuration --raw 2>&1 | Out-String).Trim(); if ($LASTEXITCODE -ne 0) { throw "sandbox-start-failed:$startText" }; $sandboxId = [string](($startText | ConvertFrom-Json).Id)
-    $command = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-T1R01IsolatedGuest.ps1'
+    $command = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-T1R01CandidateIsolationGuest.ps1'
     $exec = Invoke-WsbExecDiagnostic -Id $sandboxId -Command $command -Timeout $TimeoutSeconds
     Save-WsbExecDiagnostic -Result $exec
     if ($exec.timedOut) { throw 'sandbox-exec-timeout' }

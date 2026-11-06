@@ -19,7 +19,7 @@ $submissionSource = Join-Path $trustedRoot "fixtures\t5-r02-r03\$FixtureId"
 $reservedSource = Join-Path $trustedRoot 'reserved'
 $publicTestsSource = Join-Path $repositoryRoot 'BenchmarkTarget\tests\public'
 $publicConfigSource = Join-Path $repositoryRoot ("BenchmarkTarget\vitest.public.{0}.config.ts" -f $TaskId.ToLowerInvariant())
-$guestScriptSource = Join-Path $PSScriptRoot 'Run-ReservedTaskGuest.ps1'
+$guestScriptSource = Join-Path $PSScriptRoot 'Run-SelectedTaskTestSuiteGuest.ps1'
 $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
 $dependencySource = Join-Path $repositoryRoot 'BenchmarkTarget\node_modules'
 $wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
@@ -137,7 +137,7 @@ $publicSuiteRoot = Join-Path $inputRoot 'public-suite'
 New-Item -ItemType Directory -Path (Join-Path $publicSuiteRoot 'tests') -Force | Out-Null
 Copy-Item -LiteralPath $publicTestsSource -Destination (Join-Path $publicSuiteRoot 'tests\public') -Recurse -Force
 Copy-Item -LiteralPath $publicConfigSource -Destination (Join-Path $publicSuiteRoot 'vitest.public-task.config.ts') -Force
-Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-ReservedTaskGuest.ps1')
+Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-SelectedTaskTestSuiteGuest.ps1')
 Copy-Item -LiteralPath $nodePath -Destination (Join-Path $runtimeRoot 'node.exe')
 Copy-Item -LiteralPath $dependencySource -Destination (Join-Path $runtimeRoot 'node_modules') -Recurse -Force
 
@@ -182,7 +182,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "wsb start non riuscito: $startText" }
     $sandboxId = [string](($startText | ConvertFrom-Json).Id)
     if ([string]::IsNullOrWhiteSpace($sandboxId)) { throw 'wsb start non ha restituito un ID.' }
-    $guestCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedTaskGuest.ps1 -TaskId $TaskId"
+    $guestCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-SelectedTaskTestSuiteGuest.ps1 -TaskId $TaskId"
     $exec = Invoke-WsbExec -Id $sandboxId -Command $guestCommand -Timeout $TimeoutSeconds
     if ($exec.timedOut) {
         $errorCode = 'timeout'

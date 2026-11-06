@@ -1,9 +1,5 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)]
-    [ValidateSet('compliant', 'violating')]
-    [string]$FixtureId,
-
     [ValidateRange(1, 600)]
     [int]$TimeoutSeconds = 180
 )
@@ -11,14 +7,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $trustedRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = 'C:\Users\Utente\TesiAgenticAI'
-$submissionSource = Join-Path $trustedRoot "fixtures\t5\$FixtureId"
+$submissionSource = Join-Path $trustedRoot 'fixture\submission'
 $reservedSource = Join-Path $trustedRoot 'reserved'
-$guestScriptSource = Join-Path $PSScriptRoot 'Run-T5R01Guest.ps1'
+$guestScriptSource = Join-Path $PSScriptRoot 'Run-EvaluatorSmokeTestGuest.ps1'
 $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
 $dependencySource = Join-Path $repositoryRoot 'BenchmarkTarget\node_modules'
 $wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
-$probeId = 'T5-R01-v1'
-$submissionId = "t5-$FixtureId-v1"
+$probeId = 'reserved-evaluator-smoke-v1'
+$submissionId = 'known-good-arithmetic-v1'
 $runId = [guid]::NewGuid().ToString('N')
 $runRoot = Join-Path $trustedRoot "runs\$runId"
 $inputRoot = Join-Path $runRoot 'worker-input'
@@ -102,9 +98,9 @@ if ((Get-ActiveSandboxCount) -ne 0) {
 }
 
 New-Item -ItemType Directory -Path $inputRoot, $runtimeRoot, $outputRoot, $evidenceRoot -Force | Out-Null
-Copy-Item -LiteralPath $submissionSource -Destination $submissionRoot -Recurse -Force
+Copy-Item -LiteralPath $submissionSource -Destination $inputRoot -Recurse -Force
 Copy-Item -LiteralPath $reservedSource -Destination $inputRoot -Recurse -Force
-Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-ReservedSmokeGuest.ps1')
+Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-EvaluatorSmokeTestGuest.ps1')
 Copy-Item -LiteralPath $nodePath -Destination (Join-Path $runtimeRoot 'node.exe')
 Copy-Item -LiteralPath $dependencySource -Destination (Join-Path $runtimeRoot 'node_modules') -Recurse -Force
 
@@ -144,7 +140,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "wsb start non riuscito: $startText" }
     $sandboxId = [string](($startText | ConvertFrom-Json).Id)
     if ([string]::IsNullOrWhiteSpace($sandboxId)) { throw 'wsb start non ha restituito un ID.' }
-    $exec = Invoke-WsbExec -Id $sandboxId -Command 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedSmokeGuest.ps1' -Timeout $TimeoutSeconds
+    $exec = Invoke-WsbExec -Id $sandboxId -Command 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-EvaluatorSmokeTestGuest.ps1' -Timeout $TimeoutSeconds
     if ($exec.timedOut) {
         $errorCode = 'timeout'
     }
@@ -179,22 +175,20 @@ $manifestAfter = Get-TreeManifest -Root $submissionRoot
 $digestAfter = Get-ManifestDigest -Manifest $manifestAfter
 $activeSandboxCount = Get-ActiveSandboxCount
 $manifestUnchanged = ($digestBefore -eq $digestAfter)
-$exactlyOneExecuted = ($counts.total -eq 1 -and ($counts.passed + $counts.failed) -eq 1 -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
-$controlPassed = ($evaluationStatus -eq 'completed' -and $counts.passed -eq 1 -and $counts.failed -eq 0)
-$evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -and $null -eq $errorCode -and $exactlyOneExecuted -and $manifestUnchanged -and $networkDisabledObserved -and $stopSucceeded -and $activeSandboxCount -eq 0)
+$exactlyOneCompleted = ($counts.total -eq 1 -and $counts.passed -eq 1 -and $counts.failed -eq 0 -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
+$successful = ($evaluationStatus -eq 'completed' -and $null -eq $errorCode -and $exactlyOneCompleted -and $manifestUnchanged -and $networkDisabledObserved -and $stopSucceeded -and $activeSandboxCount -eq 0)
 
 [ordered]@{
     schemaVersion = 1
     probeId = $probeId
     runId = $runId
     submission = [ordered]@{ id = $submissionId; treeSha256 = $digestBefore }
-    evaluator = [ordered]@{ status = $evaluationStatus; errorCode = $errorCode; successful = $evaluationReliable }
-    control = [ordered]@{ id = 'T5-R01'; passed = $controlPassed }
+    evaluator = [ordered]@{ status = $evaluationStatus; errorCode = $errorCode; successful = $successful }
     counts = $counts
     durationMs = [int64]([DateTimeOffset]::UtcNow - $startedAt).TotalMilliseconds
     guestDurationMs = $guestDurationMs
     checks = [ordered]@{
-        exactlyOneExecuted = $exactlyOneExecuted
+        exactlyOneCompleted = $exactlyOneCompleted
         manifestUnchanged = $manifestUnchanged
         networkDisabledObserved = $networkDisabledObserved
         sandboxStopped = ($stopSucceeded -and $activeSandboxCount -eq 0)
@@ -204,6 +198,5 @@ $evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -an
 Write-Output "RUN_ID=$runId"
 Write-Output "SUMMARY=$summaryPath"
 Write-Output "RAW_REPORT=$rawReportPath"
-if (-not $evaluationReliable) { exit 20 }
-if (-not $controlPassed) { exit 10 }
+if (-not $successful) { exit 20 }
 exit 0
