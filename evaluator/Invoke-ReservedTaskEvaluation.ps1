@@ -181,7 +181,8 @@ try {
                 throw 'Il numero degli esiti non coincide con il totale dichiarato.'
             }
 
-            $controlTitlePattern = '^' + [regex]::Escape($TaskId) + '-R\d{2}(?:-shared)?$'
+            $controlIdPattern = '^' + [regex]::Escape($TaskId) + '-R\d{2}'
+            $controlTitlePattern = $controlIdPattern + '(?:-shared)?(?:\s+.+)?$'
             $invalidAssertions = @($assertions | Where-Object {
                 [string]$_.title -notmatch $controlTitlePattern -or
                 [string]$_.status -notin @('passed', 'failed', 'pending', 'todo')
@@ -190,13 +191,15 @@ try {
                 throw 'Il report contiene esiti non appartenenti alla suite selezionata.'
             }
 
-            $normalizedIds = @($assertions | ForEach-Object { ([string]$_.title) -replace '-shared$', '' })
+            $normalizedIds = @($assertions | ForEach-Object {
+                [regex]::Match([string]$_.title, $controlIdPattern).Value
+            })
             if (@($normalizedIds | Group-Object | Where-Object { $_.Count -ne 1 }).Count -ne 0) {
                 throw 'Il report contiene controlli duplicati.'
             }
 
             $controlResults = @($assertions | Sort-Object title | ForEach-Object {
-                $controlId = ([string]$_.title) -replace '-shared$', ''
+                $controlId = [regex]::Match([string]$_.title, $controlIdPattern).Value
                 $result = [ordered]@{
                     id = $controlId
                     passed = ([string]$_.status -eq 'passed')
