@@ -16,7 +16,7 @@ $trustedOutputRoot = Join-Path $workRoot 'trusted-output'
 $reportPath = Join-Path $trustedOutputRoot 't1-r01-isolation-report.json'
 $guestResultPath = Join-Path $outputRoot 'guest-result.json'
 $candidateUser = 'TesiCandidate'
-$candidatePassword = 'T3si-Ipc-Proof!2026'
+$candidatePassword = 'Ax7!mQ2#vR9@pz'
 $pipeName = 'tesi-t1-r01-' + [guid]::NewGuid().ToString('N')
 $startedAt = [DateTimeOffset]::UtcNow
 
