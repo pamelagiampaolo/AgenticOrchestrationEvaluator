@@ -41,27 +41,68 @@ function Set-DiagnosticPhase {
     Write-Diagnostic "phase=$Phase"
 }
 
+function Get-SanitizedNativeMessages {
+    param([AllowNull()][string]$Text, [ValidateRange(0, 4)][int]$Limit = 4)
+    if ($Limit -eq 0) { return @() }
+    return @(([string]$Text -split '[\r\n]+') |
+        ForEach-Object { Protect-DiagnosticText $_ } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -First $Limit)
+}
+
 function Write-NativeDiagnostic {
-    param([string]$Tool, [int]$ExitCode, [object[]]$Output)
-    $messages = @($Output | ForEach-Object { Protect-DiagnosticText ([string]$_) } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 4)
-    Write-Diagnostic "native=$Tool exitCode=$ExitCode messages=$($messages -join ' | ')"
+    param(
+        [string]$Tool,
+        [int]$ExitCode,
+        [AllowNull()][string]$Stdout,
+        [AllowNull()][string]$Stderr,
+        [switch]$SuppressMessages
+    )
+    Write-Diagnostic "native=$Tool exitCode=$ExitCode"
+    if ($SuppressMessages) { return }
+    $stdoutMessages = @(Get-SanitizedNativeMessages -Text $Stdout -Limit 4)
+    $stderrMessages = @(Get-SanitizedNativeMessages -Text $Stderr -Limit (4 - $stdoutMessages.Count))
+    Write-Diagnostic "native=$Tool stream=stdout messages=$($stdoutMessages -join ' | ')"
+    Write-Diagnostic "native=$Tool stream=stderr messages=$($stderrMessages -join ' | ')"
+}
+
+function Invoke-NativeWithCapturedStreams {
+    param([string]$FilePath, [string[]]$ArgumentList)
+    $temporaryRoot = [IO.Path]::GetTempPath()
+    $temporaryId = [guid]::NewGuid().ToString('N')
+    $stdoutPath = Join-Path $temporaryRoot "t1-r01-$temporaryId.stdout.tmp"
+    $stderrPath = Join-Path $temporaryRoot "t1-r01-$temporaryId.stderr.tmp"
+    $previousPreference = $ErrorActionPreference
+    try {
+        try {
+            $ErrorActionPreference = 'Continue'
+            & $FilePath @ArgumentList 1> $stdoutPath 2> $stderrPath
+            $nativeExitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousPreference
+        }
+        $stdout = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -Raw -LiteralPath $stdoutPath } else { '' }
+        $stderr = if (Test-Path -LiteralPath $stderrPath) { Get-Content -Raw -LiteralPath $stderrPath } else { '' }
+        return [ordered]@{ exitCode = $nativeExitCode; stdout = [string]$stdout; stderr = [string]$stderr }
+    }
+    finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Set-OnlySystemAccess {
     param([string]$Path)
-    $nativeOutput = @(& icacls.exe $Path /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' /T /C 2>&1)
-    $nativeExitCode = $LASTEXITCODE
-    $diagnosticOutput = if ($Path -eq $reservedRoot) { @() } else { $nativeOutput }
-    Write-NativeDiagnostic -Tool 'icacls.exe' -ExitCode $nativeExitCode -Output $diagnosticOutput
-    if ($nativeExitCode -ne 0) { throw "acl-system-only-failed:$Path" }
+    $nativeResult = Invoke-NativeWithCapturedStreams -FilePath 'icacls.exe' -ArgumentList @($Path, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '/T', '/C')
+    Write-NativeDiagnostic -Tool 'icacls.exe' -ExitCode $nativeResult.exitCode -Stdout $nativeResult.stdout -Stderr $nativeResult.stderr -SuppressMessages:($Path -eq $reservedRoot)
+    if ($nativeResult.exitCode -ne 0) { throw "acl-system-only-failed:$Path" }
 }
 
 function Grant-CandidateReadExecute {
     param([string]$Path, [string]$CandidateSid)
-    $nativeOutput = @(& icacls.exe $Path /grant:r "*$CandidateSid`:(OI)(CI)RX" /T /C 2>&1)
-    $nativeExitCode = $LASTEXITCODE
-    Write-NativeDiagnostic -Tool 'icacls.exe' -ExitCode $nativeExitCode -Output $nativeOutput
-    if ($nativeExitCode -ne 0) { throw "acl-candidate-read-failed:$Path" }
+    $nativeResult = Invoke-NativeWithCapturedStreams -FilePath 'icacls.exe' -ArgumentList @($Path, '/grant:r', "*$CandidateSid`:(OI)(CI)RX", '/T', '/C')
+    Write-NativeDiagnostic -Tool 'icacls.exe' -ExitCode $nativeResult.exitCode -Stdout $nativeResult.stdout -Stderr $nativeResult.stderr
+    if ($nativeResult.exitCode -ne 0) { throw "acl-candidate-read-failed:$Path" }
 }
 
 try {
@@ -72,10 +113,9 @@ try {
     New-Item -ItemType Directory -Path $trustedOutputRoot -Force | Out-Null
 
     Set-DiagnosticPhase 'create-user'
-    $netOutput = @(& net.exe user $candidateUser $candidatePassword /add /expires:never /passwordchg:no 2>&1)
-    $netExitCode = $LASTEXITCODE
-    Write-NativeDiagnostic -Tool 'net.exe' -ExitCode $netExitCode -Output $netOutput
-    if ($netExitCode -ne 0) { throw 'candidate-identity-creation-failed' }
+    $netResult = Invoke-NativeWithCapturedStreams -FilePath 'net.exe' -ArgumentList @('user', $candidateUser, $candidatePassword, '/add', '/expires:never', '/passwordchg:no')
+    Write-NativeDiagnostic -Tool 'net.exe' -ExitCode $netResult.exitCode -Stdout $netResult.stdout -Stderr $netResult.stderr
+    if ($netResult.exitCode -ne 0) { throw 'candidate-identity-creation-failed' }
 
     Set-DiagnosticPhase 'resolve-sid'
     $account = [Security.Principal.NTAccount]::new("$env:COMPUTERNAME\$candidateUser")
