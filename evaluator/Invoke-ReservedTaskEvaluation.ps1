@@ -17,7 +17,7 @@ $trustedRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = 'C:\Users\Utente\TesiAgenticAI'
 $submissionSource = Join-Path $trustedRoot "fixtures\t5-r02-r03\$FixtureId"
 $reservedSource = Join-Path $trustedRoot 'reserved'
-$guestScriptSource = Join-Path $PSScriptRoot 'Run-T5R02R03Guest.ps1'
+$guestScriptSource = Join-Path $PSScriptRoot 'Run-ReservedTaskGuest.ps1'
 $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
 $dependencySource = Join-Path $repositoryRoot 'BenchmarkTarget\node_modules'
 $wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
@@ -108,7 +108,7 @@ if ((Get-ActiveSandboxCount) -ne 0) {
 New-Item -ItemType Directory -Path $inputRoot, $runtimeRoot, $outputRoot, $evidenceRoot -Force | Out-Null
 Copy-Item -LiteralPath $submissionSource -Destination $submissionRoot -Recurse -Force
 Copy-Item -LiteralPath $reservedSource -Destination $inputRoot -Recurse -Force
-Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-ReservedSmokeGuest.ps1')
+Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-ReservedTaskGuest.ps1')
 Copy-Item -LiteralPath $nodePath -Destination (Join-Path $runtimeRoot 'node.exe')
 Copy-Item -LiteralPath $dependencySource -Destination (Join-Path $runtimeRoot 'node_modules') -Recurse -Force
 
@@ -140,8 +140,7 @@ $configuration = @"
 $evaluationStatus = 'evaluator-error'
 $errorCode = $null
 $counts = [ordered]@{ total = $null; passed = $null; failed = $null; skipped = $null; todo = $null }
-$r02Passed = $null
-$r03Passed = $null
+$controlResults = @()
 $controlResultsValid = $false
 $guestDurationMs = $null
 $networkDisabledObserved = $false
@@ -151,7 +150,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "wsb start non riuscito: $startText" }
     $sandboxId = [string](($startText | ConvertFrom-Json).Id)
     if ([string]::IsNullOrWhiteSpace($sandboxId)) { throw 'wsb start non ha restituito un ID.' }
-    $guestCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedSmokeGuest.ps1 -TaskId $TaskId"
+    $guestCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedTaskGuest.ps1 -TaskId $TaskId"
     $exec = Invoke-WsbExec -Id $sandboxId -Command $guestCommand -Timeout $TimeoutSeconds
     if ($exec.timedOut) {
         $errorCode = 'timeout'
@@ -168,19 +167,56 @@ try {
             $counts.failed = [int]$rawReport.numFailedTests
             $counts.skipped = [int]$rawReport.numPendingTests
             $counts.todo = [int]$rawReport.numTodoTests
-            $assertions = @($rawReport.testResults | ForEach-Object { $_.assertionResults })
-            $r02Assertions = @($assertions | Where-Object { $_.title -eq 'T5-R02-shared' })
-            $r03Assertions = @($assertions | Where-Object { $_.title -eq 'T5-R03' })
-            $controlResultsValid = ($r02Assertions.Count -eq 1 -and $r03Assertions.Count -eq 1)
-            if ($controlResultsValid) {
-                $r02Passed = ($r02Assertions[0].status -eq 'passed')
-                $r03Passed = ($r03Assertions[0].status -eq 'passed')
+
+            if ($counts.total -le 0) {
+                throw 'Il report non contiene test.'
             }
+            if (@($counts.Values | Where-Object { $_ -lt 0 }).Count -ne 0 -or
+                $counts.total -ne ($counts.passed + $counts.failed + $counts.skipped + $counts.todo)) {
+                throw 'I conteggi del report non sono coerenti.'
+            }
+
+            $assertions = @($rawReport.testResults | ForEach-Object { $_.assertionResults })
+            if ($assertions.Count -ne $counts.total) {
+                throw 'Il numero degli esiti non coincide con il totale dichiarato.'
+            }
+
+            $controlTitlePattern = '^' + [regex]::Escape($TaskId) + '-R\d{2}(?:-shared)?$'
+            $invalidAssertions = @($assertions | Where-Object {
+                [string]$_.title -notmatch $controlTitlePattern -or
+                [string]$_.status -notin @('passed', 'failed', 'pending', 'todo')
+            })
+            if ($invalidAssertions.Count -ne 0) {
+                throw 'Il report contiene esiti non appartenenti alla suite selezionata.'
+            }
+
+            $normalizedIds = @($assertions | ForEach-Object { ([string]$_.title) -replace '-shared$', '' })
+            if (@($normalizedIds | Group-Object | Where-Object { $_.Count -ne 1 }).Count -ne 0) {
+                throw 'Il report contiene controlli duplicati.'
+            }
+
+            $controlResults = @($assertions | Sort-Object title | ForEach-Object {
+                $controlId = ([string]$_.title) -replace '-shared$', ''
+                $result = [ordered]@{
+                    id = $controlId
+                    passed = ([string]$_.status -eq 'passed')
+                }
+                if ($controlId -eq 'T5-R02') {
+                    $result.sharedCoverage = 'T5-P04'
+                }
+                $result
+            })
+            $controlResultsValid = ($controlResults.Count -eq $counts.total)
             $guestDurationMs = [int64]$guestResult.durationMs
             $networkDisabledObserved = [bool]$guestResult.noUpNonLoopbackAdapters
             $evaluationStatus = if ([int]$guestResult.exitCode -eq 0 -and $counts.failed -eq 0) { 'completed' } else { 'test-failures' }
         }
-        catch { $errorCode = 'invalid-report' }
+        catch {
+            $evaluationStatus = 'evaluator-error'
+            $errorCode = 'invalid-report'
+            $controlResults = @()
+            $controlResultsValid = $false
+        }
     }
 }
 finally {
@@ -195,9 +231,9 @@ $manifestAfter = Get-TreeManifest -Root $submissionRoot
 $digestAfter = Get-ManifestDigest -Manifest $manifestAfter
 $activeSandboxCount = Get-ActiveSandboxCount
 $manifestUnchanged = ($digestBefore -eq $digestAfter)
-$exactlyTwoExecuted = ($counts.total -eq 2 -and ($counts.passed + $counts.failed) -eq 2 -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
-$allControlsPassed = ($r02Passed -eq $true -and $r03Passed -eq $true)
-$evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -and $null -eq $errorCode -and $exactlyTwoExecuted -and $controlResultsValid -and $manifestUnchanged -and $networkDisabledObserved -and $stopSucceeded -and $activeSandboxCount -eq 0)
+$allSelectedTestsExecuted = ($counts.total -gt 0 -and ($counts.passed + $counts.failed) -eq $counts.total -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
+$allControlsPassed = ($controlResults.Count -gt 0 -and @($controlResults | Where-Object { $_.passed -ne $true }).Count -eq 0)
+$evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -and $null -eq $errorCode -and $allSelectedTestsExecuted -and $controlResultsValid -and $manifestUnchanged -and $networkDisabledObserved -and $stopSucceeded -and $activeSandboxCount -eq 0)
 
 [ordered]@{
     schemaVersion = 1
@@ -205,15 +241,12 @@ $evaluationReliable = ($evaluationStatus -in @('completed', 'test-failures') -an
     runId = $runId
     submission = [ordered]@{ id = $submissionId; treeSha256 = $digestBefore }
     evaluator = [ordered]@{ status = $evaluationStatus; errorCode = $errorCode; successful = $evaluationReliable }
-    controls = @(
-        [ordered]@{ id = 'T5-R02'; passed = $r02Passed; sharedCoverage = 'T5-P04' }
-        [ordered]@{ id = 'T5-R03'; passed = $r03Passed }
-    )
+    controls = $controlResults
     counts = $counts
     durationMs = [int64]([DateTimeOffset]::UtcNow - $startedAt).TotalMilliseconds
     guestDurationMs = $guestDurationMs
     checks = [ordered]@{
-        exactlyTwoExecuted = $exactlyTwoExecuted
+        allSelectedTestsExecuted = $allSelectedTestsExecuted
         controlResultsValid = $controlResultsValid
         manifestUnchanged = $manifestUnchanged
         networkDisabledObserved = $networkDisabledObserved
