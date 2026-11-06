@@ -1,6 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
+    [ValidateSet('T1', 'T2', 'T3', 'T4', 'T5', 'T6')]
+    [string]$TaskId,
+
+    [Parameter(Mandatory)]
     [ValidateSet('compliant', 'violating')]
     [string]$FixtureId,
 
@@ -147,7 +151,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "wsb start non riuscito: $startText" }
     $sandboxId = [string](($startText | ConvertFrom-Json).Id)
     if ([string]::IsNullOrWhiteSpace($sandboxId)) { throw 'wsb start non ha restituito un ID.' }
-    $exec = Invoke-WsbExec -Id $sandboxId -Command 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedSmokeGuest.ps1' -Timeout $TimeoutSeconds
+    $guestCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedSmokeGuest.ps1 -TaskId $TaskId"
+    $exec = Invoke-WsbExec -Id $sandboxId -Command $guestCommand -Timeout $TimeoutSeconds
     if ($exec.timedOut) {
         $errorCode = 'timeout'
     }

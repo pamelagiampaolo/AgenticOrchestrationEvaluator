@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param()
+param(
+    [Parameter(Mandatory)]
+    [ValidateSet('T1', 'T2', 'T3', 'T4', 'T5', 'T6')]
+    [string]$TaskId
+)
 
 $ErrorActionPreference = 'Stop'
 $inputRoot = 'C:\EvaluatorInput'
@@ -15,12 +19,13 @@ $startedAt = [DateTimeOffset]::UtcNow
 Copy-Item -LiteralPath $inputRoot -Destination $workRoot -Recurse -Force
 $env:PATH = "$runtimeRoot;$env:WINDIR\System32;$env:WINDIR"
 $env:NODE_OPTIONS = '--no-network-family-autoselection'
+$env:RESERVED_TASK_ID = $TaskId
 
 $process = Start-Process -FilePath $nodePath `
     -ArgumentList @(
         $vitestPath,
         'run',
-        '--config', (Join-Path $workRoot 'reserved\vitest.t5-r02-r03.config.ts'),
+        '--config', (Join-Path $workRoot 'reserved\vitest.reserved-task.config.ts'),
         '--root', $workRoot,
         '--reporter=json',
         "--outputFile=$rawReportPath"
