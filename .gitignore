@@ -1,0 +1,15 @@
+# Generated evaluator runs can contain copied runtimes and dependencies.
+runs/
+
+# Local dependencies and generated reports.
+node_modules/
+*.log
+*.stdout.txt
+*.stderr.txt
+
+# Editor and operating-system metadata.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
