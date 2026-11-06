@@ -1,0 +1,202 @@
+[CmdletBinding()]
+param(
+    [ValidateRange(1, 600)]
+    [int]$TimeoutSeconds = 180
+)
+
+$ErrorActionPreference = 'Stop'
+$trustedRoot = Split-Path -Parent $PSScriptRoot
+$repositoryRoot = 'C:\Users\Utente\TesiAgenticAI'
+$submissionSource = Join-Path $trustedRoot 'fixture\submission'
+$reservedSource = Join-Path $trustedRoot 'reserved'
+$guestScriptSource = Join-Path $PSScriptRoot 'Run-ReservedSmokeGuest.ps1'
+$nodePath = (Get-Command node.exe -ErrorAction Stop).Source
+$dependencySource = Join-Path $repositoryRoot 'BenchmarkTarget\node_modules'
+$wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
+$probeId = 'reserved-evaluator-smoke-v1'
+$submissionId = 'known-good-arithmetic-v1'
+$runId = [guid]::NewGuid().ToString('N')
+$runRoot = Join-Path $trustedRoot "runs\$runId"
+$inputRoot = Join-Path $runRoot 'worker-input'
+$submissionRoot = Join-Path $inputRoot 'submission'
+$runtimeRoot = Join-Path $inputRoot 'runtime'
+$outputRoot = Join-Path $runRoot 'worker-output'
+$evidenceRoot = Join-Path $runRoot 'evidence'
+$rawReportPath = Join-Path $outputRoot 'reserved-raw-report.json'
+$guestResultPath = Join-Path $outputRoot 'guest-result.json'
+$manifestPath = Join-Path $evidenceRoot 'submission-manifest.json'
+$summaryPath = Join-Path $evidenceRoot 'evaluation-summary.json'
+$sandboxId = $null
+$stopSucceeded = $false
+$startedAt = [DateTimeOffset]::UtcNow
+
+function Get-TreeManifest {
+    param([string]$Root)
+    return @(
+        Get-ChildItem -LiteralPath $Root -File -Recurse |
+            Sort-Object FullName |
+            ForEach-Object {
+                [ordered]@{
+                    relativePath = $_.FullName.Substring($Root.Length + 1).Replace('\', '/')
+                    length = $_.Length
+                    sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash
+                }
+            }
+    )
+}
+
+function Get-ManifestDigest {
+    param($Manifest)
+    $text = $Manifest | ConvertTo-Json -Depth 5 -Compress
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString($algorithm.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)))).Replace('-', '')
+    }
+    finally { $algorithm.Dispose() }
+}
+
+function ConvertTo-QuotedProcessArgument {
+    param([string]$Value)
+    return '"' + $Value.Replace('"', '\"') + '"'
+}
+
+function Invoke-WsbExec {
+    param([string]$Id, [string]$Command, [int]$Timeout)
+    $arguments = @('exec', '--id', $Id, '--command', $Command, '--run-as', 'System', '--raw')
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $wsbPath
+    $startInfo.Arguments = ($arguments | ForEach-Object { ConvertTo-QuotedProcessArgument $_ }) -join ' '
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    if (-not $process.Start()) { throw 'Impossibile avviare wsb exec.' }
+    try {
+        if (-not $process.WaitForExit($Timeout * 1000)) {
+            try { $process.Kill($true) } catch [InvalidOperationException] { }
+            return [ordered]@{ timedOut = $true; exitCode = $null }
+        }
+        return [ordered]@{ timedOut = $false; exitCode = $process.ExitCode }
+    }
+    finally { $process.Dispose() }
+}
+
+function Get-ActiveSandboxCount {
+    $result = & $wsbPath list --raw | ConvertFrom-Json
+    return @($result.WindowsSandboxEnvironments).Count
+}
+
+$repositoryPrefix = $repositoryRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+if ($trustedRoot.Equals($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -or
+    $trustedRoot.StartsWith($repositoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'L area fidata deve essere esterna al repository.'
+}
+if ((Get-ActiveSandboxCount) -ne 0) {
+    throw 'La prova richiede zero Sandbox attive all avvio.'
+}
+
+New-Item -ItemType Directory -Path $inputRoot, $runtimeRoot, $outputRoot, $evidenceRoot -Force | Out-Null
+Copy-Item -LiteralPath $submissionSource -Destination $inputRoot -Recurse -Force
+Copy-Item -LiteralPath $reservedSource -Destination $inputRoot -Recurse -Force
+Copy-Item -LiteralPath $guestScriptSource -Destination (Join-Path $inputRoot 'Run-ReservedSmokeGuest.ps1')
+Copy-Item -LiteralPath $nodePath -Destination (Join-Path $runtimeRoot 'node.exe')
+Copy-Item -LiteralPath $dependencySource -Destination (Join-Path $runtimeRoot 'node_modules') -Recurse -Force
+
+$manifestBefore = Get-TreeManifest -Root $submissionRoot
+$digestBefore = Get-ManifestDigest -Manifest $manifestBefore
+[ordered]@{
+    schemaVersion = 1
+    submissionId = $submissionId
+    treeSha256 = $digestBefore
+    fileCount = $manifestBefore.Count
+    files = $manifestBefore
+} | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 -LiteralPath $manifestPath
+
+$escapedInput = [Security.SecurityElement]::Escape($inputRoot)
+$escapedOutput = [Security.SecurityElement]::Escape($outputRoot)
+$configuration = @"
+<Configuration>
+  <VGpu>Disable</VGpu><Networking>Disable</Networking>
+  <AudioInput>Disable</AudioInput><VideoInput>Disable</VideoInput>
+  <ProtectedClient>Enable</ProtectedClient><PrinterRedirection>Disable</PrinterRedirection>
+  <ClipboardRedirection>Disable</ClipboardRedirection>
+  <MappedFolders>
+    <MappedFolder><HostFolder>$escapedInput</HostFolder><SandboxFolder>C:\EvaluatorInput</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
+    <MappedFolder><HostFolder>$escapedOutput</HostFolder><SandboxFolder>C:\EvaluatorOutput</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>
+  </MappedFolders>
+</Configuration>
+"@
+
+$evaluationStatus = 'evaluator-error'
+$errorCode = $null
+$counts = [ordered]@{ total = $null; passed = $null; failed = $null; skipped = $null; todo = $null }
+$guestDurationMs = $null
+$networkDisabledObserved = $false
+
+try {
+    $startText = (& $wsbPath start --config $configuration --raw 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) { throw "wsb start non riuscito: $startText" }
+    $sandboxId = [string](($startText | ConvertFrom-Json).Id)
+    if ([string]::IsNullOrWhiteSpace($sandboxId)) { throw 'wsb start non ha restituito un ID.' }
+    $exec = Invoke-WsbExec -Id $sandboxId -Command 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\EvaluatorInput\Run-ReservedSmokeGuest.ps1' -Timeout $TimeoutSeconds
+    if ($exec.timedOut) {
+        $errorCode = 'timeout'
+    }
+    elseif (-not (Test-Path -LiteralPath $guestResultPath) -or -not (Test-Path -LiteralPath $rawReportPath)) {
+        $errorCode = 'missing-report'
+    }
+    else {
+        try {
+            $guestResult = Get-Content -Raw -LiteralPath $guestResultPath | ConvertFrom-Json
+            $rawReport = Get-Content -Raw -LiteralPath $rawReportPath | ConvertFrom-Json
+            $counts.total = [int]$rawReport.numTotalTests
+            $counts.passed = [int]$rawReport.numPassedTests
+            $counts.failed = [int]$rawReport.numFailedTests
+            $counts.skipped = [int]$rawReport.numPendingTests
+            $counts.todo = [int]$rawReport.numTodoTests
+            $guestDurationMs = [int64]$guestResult.durationMs
+            $networkDisabledObserved = [bool]$guestResult.noUpNonLoopbackAdapters
+            $evaluationStatus = if ([int]$guestResult.exitCode -eq 0 -and $counts.failed -eq 0) { 'completed' } else { 'test-failures' }
+        }
+        catch { $errorCode = 'invalid-report' }
+    }
+}
+finally {
+    if (-not [string]::IsNullOrWhiteSpace($sandboxId)) {
+        & $wsbPath stop --id $sandboxId --raw | Out-Null
+        $stopSucceeded = ($LASTEXITCODE -eq 0)
+        $sandboxId = $null
+    }
+}
+
+$manifestAfter = Get-TreeManifest -Root $submissionRoot
+$digestAfter = Get-ManifestDigest -Manifest $manifestAfter
+$activeSandboxCount = Get-ActiveSandboxCount
+$manifestUnchanged = ($digestBefore -eq $digestAfter)
+$exactlyOneCompleted = ($counts.total -eq 1 -and $counts.passed -eq 1 -and $counts.failed -eq 0 -and $counts.skipped -eq 0 -and $counts.todo -eq 0)
+$successful = ($evaluationStatus -eq 'completed' -and $null -eq $errorCode -and $exactlyOneCompleted -and $manifestUnchanged -and $networkDisabledObserved -and $stopSucceeded -and $activeSandboxCount -eq 0)
+
+[ordered]@{
+    schemaVersion = 1
+    probeId = $probeId
+    runId = $runId
+    submission = [ordered]@{ id = $submissionId; treeSha256 = $digestBefore }
+    evaluator = [ordered]@{ status = $evaluationStatus; errorCode = $errorCode; successful = $successful }
+    counts = $counts
+    durationMs = [int64]([DateTimeOffset]::UtcNow - $startedAt).TotalMilliseconds
+    guestDurationMs = $guestDurationMs
+    checks = [ordered]@{
+        exactlyOneCompleted = $exactlyOneCompleted
+        manifestUnchanged = $manifestUnchanged
+        networkDisabledObserved = $networkDisabledObserved
+        sandboxStopped = ($stopSucceeded -and $activeSandboxCount -eq 0)
+    }
+} | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 -LiteralPath $summaryPath
+
+Write-Output "RUN_ID=$runId"
+Write-Output "SUMMARY=$summaryPath"
+Write-Output "RAW_REPORT=$rawReportPath"
+if (-not $successful) { exit 20 }
+exit 0
