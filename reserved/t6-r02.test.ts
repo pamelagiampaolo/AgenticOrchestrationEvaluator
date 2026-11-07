@@ -19,10 +19,10 @@ test("T6-R02", () => {
     { productId: "P-002", quantity: 4 },
   ]);
 
-  expect(inventory.confirmOrder(secondCreated.orderId)).toEqual(
+  expect.soft(inventory.confirmOrder(secondCreated.orderId)).toEqual(
     expectedOrder("O-002", "fulfilled", 4, 0),
   );
-  expect(inventory.confirmOrder(firstCreated.orderId)).toEqual(
+  expect.soft(inventory.confirmOrder(firstCreated.orderId)).toEqual(
     expectedOrder("O-001", "partially-fulfilled", 1, 3),
   );
   expect(inventory.getAvailableQuantity("P-002")).toBe(0);
