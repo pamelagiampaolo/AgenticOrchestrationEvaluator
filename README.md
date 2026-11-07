@@ -25,3 +25,9 @@ them incrementally, starting from the smoke test.
 The evaluator currently expects the main repository at
 `C:\Users\Utente\TesiAgenticAI`. This path is configured in the host-side
 PowerShell scripts.
+
+## Development handoff
+
+The current owner, verified status, remaining work, and next authorized step are
+recorded in `docs/handoff.md`. Keep that document updated whenever development
+responsibility changes.
