@@ -45,7 +45,7 @@ oggi disponibile per l'intera matrice.
 | T4-R01 | Sospendere un prodotto inesistente fallisce senza mutazioni | `reserved/t4-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione mirata |
 | T4-R02 | Un ordine misto con prodotto sospeso fallisce atomicamente | `reserved/t4-r02.test.ts` | assenti | Presente da validare; creare positivo e violazione con aggiornamento parziale |
 | T4-R03 | La sospensione successiva non altera un ordine storico confermato | `reserved/t4-r03.test.ts` | assenti | Presente da validare; creare positivo e violazione che lega lo storico allo stato corrente |
-| T5-R01 | La logica applicativa dipende dai contratti, senza persistenza concreta interna | `reserved/t5-r01.test.ts` | `fixtures/t5/{compliant,violating}` | Da sostituire: usa regex e parsing testuale, mentre il contratto impone AST TypeScript e forme sintattiche equivalenti |
+| T5-R01 | La logica applicativa dipende dai contratti, senza persistenza concreta interna | `reserved/t5-r01.test.ts` | `fixtures/controls/T5/R01/{compliant,violating}` con varianti interne | Validato con AST TypeScript 7: due forme conformi passano; la violante fallisce soltanto con `direct-persistence-field:ordersById` |
 | T5-R02 | Factory e logica usano realmente tutti i repository sostitutivi ricevuti | test `T5-R02-shared` in `reserved/t5-r02-r03.test.ts` | `fixtures/t5-r02-r03/{compliant,violating}` | Parziale: il controllo e comportamentale, ma file, output e fixture sono accoppiati a R03; separare e dimostrare il motivo discriminante |
 | T5-R03 | Errori e ordinamenti restano invariati dopo il refactoring | test `T5-R03` in `reserved/t5-r02-r03.test.ts` | nessuna fixture esclusiva | Parziale: controllo presente ma non indipendente nelle evidenze e privo di coppia di fixture dedicata |
 | T6-R01 | Ordine multiprodotto produce quantita e stato globali corretti | `reserved/t6-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione di allocazione multiprodotto |
@@ -58,14 +58,14 @@ oggi disponibile per l'intera matrice.
 - Identificatori canonici previsti: **19**.
 - Identificatori con un test nominale osservabile: **19**.
 - Controlli mancanti: **0**.
-- Controlli presenti ma non congelabili nello stato corrente: **3** (`T5-R01`,
-  `T5-R02`, `T5-R03`).
-- Controlli dotati di una coppia di directory chiamate `compliant` e
-  `violating`: **4 gruppi**; `T2-R03` e `T6-R04` usano il layout canonico,
-  mentre `T5-R01` e il gruppo accoppiato `T5-R02/R03` usano ancora layout
-  pre-canonici.
+- Controlli presenti ma non congelabili nello stato corrente: **2** (`T5-R02`,
+  `T5-R03`).
+- Controlli dotati di fixture canoniche `compliant` e `violating`: **3**
+  (`T2-R03`, `T5-R01`, `T6-R04`). `T5-R01` include due varianti conformi
+  sintatticamente diverse. Restano inoltre due gruppi legacy pre-canonici sotto
+  `fixtures/t5/` e `fixtures/t5-r02-r03/`.
 - Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
-  **2 dimostrati** (`T2-R03`, `T6-R04`).
+  **3 dimostrati** (`T2-R03`, `T5-R01`, `T6-R04`).
 
 ## Inventario pubblico osservato
 
@@ -96,15 +96,12 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 2. I controlli T5 scrivono risultati su percorsi assoluti della precedente
    architettura (`C:/EvaluatorWork` e `C:/EvaluatorOutput`), non compatibili con
    il nuovo runner locale ancora da costruire.
-3. `T5-R01` non usa una API AST TypeScript: cerca dichiarazioni e corpi tramite
-   regex e bilanciamento manuale delle parentesi. Questo contraddice una
-   decisione esplicita del contratto.
-4. Le fixture non seguono il layout approvato
+3. Le fixture non ancora migrate non seguono il layout approvato
    `fixtures/controls/<task>/<control>/{compliant,violating}` e non coprono ogni
    controllo separatamente.
-5. Non esiste ancora una procedura automatica che dimostri che la fixture
+4. Non esiste ancora una procedura automatica generale che dimostri che la fixture
    violante fallisce per il motivo discriminante e non per un errore estraneo.
-6. Lo smoke test usa una fixture separata valida, ma certifica soltanto il
+5. Lo smoke test usa una fixture separata valida, ma certifica soltanto il
    collegamento minimo tra suite e submission; non valida la matrice canonica.
 
 ## Decisione risultante e ordine di completamento
@@ -112,23 +109,22 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 L'audit non congela ancora le suite. La matrice puo essere completata con
 iterazioni indipendenti nel seguente ordine:
 
-1. sostituire `T5-R01` con un controllo AST TypeScript e almeno due forme
-   sintattiche equivalenti conformi;
-2. separare file, output e fixture di `T5-R02` e `T5-R03`;
-3. creare progressivamente le coppie di fixture degli altri controlli;
-4. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
+1. separare file, output e fixture di `T5-R02` e `T5-R03`;
+2. creare progressivamente le coppie di fixture degli altri controlli;
+3. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
    controllo ha superato la propria validazione positiva e negativa.
 
-Ogni punto costituisce un'iterazione distinta. Dopo il completamento delle due
-lacune funzionali `T2-R03` e `T6-R04`, il primo passo successivo raccomandato e
-quindi solo la sostituzione di `T5-R01`, senza iniziare contestualmente il
-runner.
+Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
+`T2-R03`, `T6-R04` e della sostituzione AST di `T5-R01`, il primo passo
+successivo raccomandato e quindi solo la separazione di `T5-R02` e `T5-R03`,
+senza iniziare contestualmente il runner.
 
 ## Limiti e lavoro non verificato
 
-- Sono stati eseguiti soltanto i test mirati `T2-R03` e `T6-R04`; gli altri
-  controlli non sono stati eseguiti.
-- E stata provata soltanto la compilazione delle fixture `T2-R03` e `T6-R04`.
+- Sono stati eseguiti soltanto i test mirati `T2-R03`, `T5-R01` e `T6-R04`; gli
+  altri controlli non sono stati eseguiti.
+- E stata provata soltanto la compilazione delle fixture `T2-R03`, `T5-R01` e
+  `T6-R04`.
 - Non e stato verificato che le suite correnti producano report machine-readable
   validi.
 - Non sono stati congelati hash, versioni degli strumenti, exit code o schema

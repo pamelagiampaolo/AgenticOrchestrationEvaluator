@@ -1,122 +1,349 @@
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import * as ts from "typescript/unstable/ast";
+import { API } from "typescript/unstable/sync";
+import { expect, test } from "vitest";
 
-const requiredContracts = new Map<string, string[]>([
+const requiredContracts = new Map<string, readonly string[]>([
   ["ProductRepository", ["findById", "list"]],
   ["InventoryRepository", ["getAvailableQuantity", "setAvailableQuantity"]],
   ["OrderRepository", ["findById", "list", "save"]],
 ]);
-const concreteRepositories = ["InMemoryProductRepository", "InMemoryInventoryRepository", "InMemoryOrderRepository"];
+
+const concreteRepositories = new Set([
+  "InMemoryProductRepository",
+  "InMemoryInventoryRepository",
+  "InMemoryOrderRepository",
+]);
 
 test("T5-R01 application logic depends on repository contracts", () => {
-  const source = readTypeScriptSources("C:/EvaluatorWork/submission/src");
-  const violations: string[] = [];
-  for (const [contractName, operations] of requiredContracts) {
-    const body = extractDeclarationBody(source, new RegExp(`\\binterface\\s+${contractName}\\b`));
-    if (body === undefined) { violations.push(`missing-contract:${contractName}`); continue; }
-    for (const operation of operations) if (!new RegExp(`\\b${operation}\\s*\\(`).test(body)) violations.push(`missing-operation:${contractName}.${operation}`);
-  }
-  for (const implementation of concreteRepositories) {
-    if (!new RegExp(`\\bclass\\s+${implementation}\\b`).test(source)) violations.push(`missing-implementation:${implementation}`);
-  }
-  const factory = source.match(/\bfunction\s+createInventoryManagementWithRepositories\s*\(([\s\S]*?)\)\s*:\s*InventoryManagement/);
-  if (factory === null) violations.push("missing-factory");
-  else for (const contractName of requiredContracts.keys()) if (!new RegExp(`:\\s*${contractName}\\b`).test(factory[1] ?? "")) violations.push(`factory-missing-contract:${contractName}`);
+  const api = new API();
+  const submissionRoot = decodeURIComponent(
+    new URL("../submission/", import.meta.url).pathname,
+  )
+    .replace(/^\/([A-Za-z]:)/, "$1")
+    .replace(/\/$/, "");
+  const configFile = `${submissionRoot}/tsconfig.json`;
 
-  const applicationBody = extractDeclarationBody(source, /\bclass\s+InventoryManagement\b/);
-  if (applicationBody === undefined) violations.push("missing-application-service");
-  else inspectApplicationBody(applicationBody, violations);
-  const uniqueViolations = [...new Set(violations)].sort();
-  writeFileSync(
-    "C:/EvaluatorOutput/t5-r01-private-result.json",
-    JSON.stringify({ controlId: "T5-R01", violations: uniqueViolations }),
-    "utf8",
-  );
-  expect(uniqueViolations).toEqual([]);
+  try {
+    const snapshot = api.updateSnapshot({ openProjects: [configFile] });
+    const project = snapshot.getProjects()[0];
+    if (project === undefined) {
+      throw new Error("TypeScript did not load the submission project");
+    }
+
+    const sourceFiles = project.program
+      .getSourceFileNames()
+      .filter(
+        (path) =>
+          path.replaceAll("\\", "/").startsWith(`${submissionRoot}/src/`) &&
+          /\.tsx?$/.test(path) &&
+          !path.endsWith(".d.ts"),
+      )
+      .map((path) => project.program.getSourceFile(path))
+      .filter((sourceFile): sourceFile is ts.SourceFile => sourceFile !== undefined);
+
+    expect(inspectSources(sourceFiles)).toEqual([]);
+    snapshot.dispose();
+  } finally {
+    api.close();
+  }
 });
 
-function inspectApplicationBody(applicationBody: string, violations: string[]): void {
-  const contractFields = new Map<string, string>();
-  for (const contractName of requiredContracts.keys()) {
-    const pattern = new RegExp(`(?:private|protected|public)\\s+(?:readonly\\s+)?(\\w+)\\s*:\\s*${contractName}\\b`, "g");
-    for (const match of applicationBody.matchAll(pattern)) contractFields.set(match[1]!, contractName);
-    if (![...contractFields.values()].includes(contractName)) violations.push(`missing-contract-dependency:${contractName}`);
+function inspectSources(sourceFiles: readonly ts.SourceFile[]): string[] {
+  const violations: string[] = [];
+  const declarations = collectNamedDeclarations(sourceFiles);
+
+  inspectContracts(declarations.interfaces, violations);
+  inspectConcreteRepositories(declarations.classes, violations);
+  inspectFactory(sourceFiles, violations);
+
+  const applicationService = declarations.classes.get("InventoryManagement");
+  if (applicationService === undefined) {
+    violations.push("missing-application-service");
+  } else {
+    inspectApplicationService(applicationService, violations);
   }
-  for (const implementation of concreteRepositories) {
-    if (new RegExp(`(?:private|protected|public)\\s+(?:readonly\\s+)?\\w+\\s*:\\s*${implementation}\\b`).test(applicationBody)) violations.push(`concrete-repository-dependency:${implementation}`);
-    if (new RegExp(`(?:private|protected|public)\\s+(?:readonly\\s+)?\\w+\\s*(?::\\s*[^;=\\r\\n]+)?\\s*=\\s*new\\s+${implementation}\\b`).test(applicationBody)) violations.push(`concrete-repository-field:${implementation}`);
-  }
-  const nonConstructorBody = removeConstructorBodies(applicationBody);
-  for (const fieldName of findPersistenceCollectionFields(applicationBody)) {
-    if (new RegExp(`\\bthis\\s*\\.\\s*${fieldName}\\s*(?:\\.|\\[)`).test(nonConstructorBody)) violations.push(`direct-persistence-collection-access:${fieldName}`);
-  }
-  for (const implementation of concreteRepositories) {
-    if (new RegExp(`\\bnew\\s+${implementation}\\b`).test(nonConstructorBody)) violations.push(`concrete-repository-created-in-application-method:${implementation}`);
-  }
-  for (const [fieldName, contractName] of contractFields) {
-    for (const operation of requiredContracts.get(contractName) ?? []) {
-      if (!new RegExp(`\\bthis\\s*\\.\\s*${fieldName}\\s*\\.\\s*${operation}\\s*\\(`).test(nonConstructorBody)) violations.push(`unused-contract-operation:${contractName}.${operation}`);
+
+  return [...new Set(violations)].sort();
+}
+
+function inspectContracts(
+  interfaces: ReadonlyMap<string, ts.InterfaceDeclaration>,
+  violations: string[],
+): void {
+  for (const [contractName, requiredOperations] of requiredContracts) {
+    const contract = interfaces.get(contractName);
+    if (contract === undefined) {
+      violations.push(`missing-contract:${contractName}`);
+      continue;
+    }
+
+    const operations = new Set(
+      contract.members
+        .filter(isCallableInterfaceMember)
+        .map((member) => member.name)
+        .filter(ts.isIdentifier)
+        .map((name) => name.text),
+    );
+    for (const operation of requiredOperations) {
+      if (!operations.has(operation)) {
+        violations.push(`missing-operation:${contractName}.${operation}`);
+      }
     }
   }
 }
 
-function readTypeScriptSources(root: string): string {
-  return readdirSync(root)
-    .sort()
-    .flatMap(name => {
-      const path = join(root, name);
-      if (statSync(path).isDirectory()) return [readTypeScriptSources(path)];
-      return name.endsWith(".ts") && !name.endsWith(".d.ts") ? [readFileSync(path, "utf8")] : [];
-    })
-    .join("\n");
-}
-
-function findPersistenceCollectionFields(classBody: string): Set<string> {
-  const fields = new Set<string>();
-  const declarations = classBody.matchAll(/(?:private|protected|public)\s+(?:readonly\s+)?(\w+)\s*(?::\s*([^;=]+))?(?:=\s*([^;]+))?;/g);
-  for (const match of declarations) {
-    const shape = `${match[2] ?? ""} ${match[3] ?? ""}`;
-    const entityArray = /(?:readonly\s+)?(?:Product|InitialProduct|Order)\s*\[\]/.test(shape) || /Array\s*<\s*(?:Product|InitialProduct|Order)\s*>/.test(shape);
-    const keyedPersistence = /Map\s*<\s*string\s*,\s*(?:Product|InitialProduct|Order|number)\s*>/.test(shape);
-    if (entityArray || keyedPersistence) fields.add(match[1]!);
+function isCallableInterfaceMember(
+  member: ts.TypeElement,
+): member is (ts.MethodSignatureDeclaration | ts.PropertySignatureDeclaration) & {
+  name: ts.PropertyName;
+} {
+  if (ts.isMethodSignatureDeclaration(member)) {
+    return member.name !== undefined;
   }
-  return fields;
+
+  return (
+    ts.isPropertySignatureDeclaration(member) &&
+    member.name !== undefined &&
+    member.type !== undefined &&
+    ts.isFunctionTypeNode(member.type)
+  );
 }
 
-function extractDeclarationBody(source: string, declaration: RegExp): string | undefined {
-  const match = declaration.exec(source);
-  if (match === null) return undefined;
-  const opening = source.indexOf("{", match.index + match[0].length);
-  const closing = opening < 0 ? -1 : findMatching(source, opening, "{", "}");
-  return closing < 0 ? undefined : source.slice(opening + 1, closing);
-}
-
-function removeConstructorBodies(classBody: string): string {
-  let result = classBody;
-  let searchFrom = 0;
-  while (true) {
-    const pattern = /\bconstructor\s*\(/g;
-    pattern.lastIndex = searchFrom;
-    const match = pattern.exec(result);
-    if (match === null) return result;
-    const openingParenthesis = result.indexOf("(", match.index);
-    const signatureEnd = findMatching(result, openingParenthesis, "(", ")");
-    const nextBrace = result.indexOf("{", signatureEnd + 1);
-    const nextSemicolon = result.indexOf(";", signatureEnd + 1);
-    if (nextSemicolon >= 0 && (nextBrace < 0 || nextSemicolon < nextBrace)) { searchFrom = nextSemicolon + 1; continue; }
-    if (nextBrace < 0) return result;
-    const closingBrace = findMatching(result, nextBrace, "{", "}");
-    if (closingBrace < 0) return result;
-    result = `${result.slice(0, match.index)}${" ".repeat(closingBrace - match.index + 1)}${result.slice(closingBrace + 1)}`;
-    searchFrom = match.index + 1;
+function inspectConcreteRepositories(
+  classes: ReadonlyMap<string, ts.ClassDeclaration>,
+  violations: string[],
+): void {
+  for (const repositoryName of concreteRepositories) {
+    if (!classes.has(repositoryName)) {
+      violations.push(`missing-implementation:${repositoryName}`);
+    }
   }
 }
 
-function findMatching(source: string, opening: number, open: string, close: string): number {
-  let depth = 0;
-  for (let index = opening; index < source.length; index++) {
-    if (source[index] === open) depth++;
-    if (source[index] === close && --depth === 0) return index;
+function inspectFactory(
+  sourceFiles: readonly ts.SourceFile[],
+  violations: string[],
+): void {
+  const factory = findFactory(sourceFiles);
+  if (factory === undefined) {
+    violations.push("missing-factory");
+    return;
   }
-  return -1;
+
+  const expectedParameterTypes = [...requiredContracts.keys()];
+  if (factory.parameters.length !== expectedParameterTypes.length) {
+    violations.push("factory-parameter-count");
+  }
+
+  expectedParameterTypes.forEach((expectedType, index) => {
+    const parameter = factory.parameters[index];
+    if (parameter === undefined || typeReferenceName(parameter.type) !== expectedType) {
+      violations.push(`factory-missing-contract:${expectedType}`);
+    }
+  });
+
+  if (typeReferenceName(factory.returnType) !== "InventoryManagement") {
+    violations.push("factory-return-type");
+  }
+}
+
+type FactoryShape = {
+  parameters: readonly ts.ParameterDeclaration[];
+  returnType: ts.TypeNode | undefined;
+};
+
+function findFactory(sourceFiles: readonly ts.SourceFile[]): FactoryShape | undefined {
+  for (const sourceFile of sourceFiles) {
+    for (const statement of sourceFile.statements) {
+      if (
+        ts.isFunctionDeclaration(statement) &&
+        statement.name?.text === "createInventoryManagementWithRepositories"
+      ) {
+        return { parameters: statement.parameters, returnType: statement.type };
+      }
+
+      if (!ts.isVariableStatement(statement)) {
+        continue;
+      }
+
+      for (const declaration of statement.declarationList.declarations) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === "createInventoryManagementWithRepositories" &&
+          declaration.initializer !== undefined &&
+          (ts.isArrowFunction(declaration.initializer) ||
+            ts.isFunctionExpression(declaration.initializer))
+        ) {
+          return {
+            parameters: declaration.initializer.parameters,
+            returnType: declaration.initializer.type,
+          };
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function inspectApplicationService(
+  applicationService: ts.ClassDeclaration,
+  violations: string[],
+): void {
+  const dependencyTypes = new Set<string>();
+
+  for (const member of applicationService.members) {
+    if (ts.isPropertyDeclaration(member)) {
+      inspectStateMember(member.name, member.type, member.initializer, violations);
+      addRepositoryDependency(member.type, dependencyTypes);
+      continue;
+    }
+
+    if (ts.isConstructorDeclaration(member)) {
+      for (const parameter of member.parameters) {
+        if (!isParameterProperty(parameter)) {
+          continue;
+        }
+        inspectStateMember(parameter.name, parameter.type, parameter.initializer, violations);
+        addRepositoryDependency(parameter.type, dependencyTypes);
+      }
+      continue;
+    }
+
+    inspectForbiddenConcreteConstruction(member, violations);
+  }
+
+  for (const contractName of requiredContracts.keys()) {
+    if (!dependencyTypes.has(contractName)) {
+      violations.push(`missing-contract-dependency:${contractName}`);
+    }
+  }
+}
+
+function inspectStateMember(
+  name: ts.BindingName | ts.PropertyName,
+  type: ts.TypeNode | undefined,
+  initializer: ts.Expression | undefined,
+  violations: string[],
+): void {
+  const memberName = ts.isIdentifier(name) ? name.text : name.getText();
+  const referencedType = typeReferenceName(type);
+
+  if (referencedType !== undefined && concreteRepositories.has(referencedType)) {
+    violations.push(`concrete-repository-dependency:${referencedType}`);
+  }
+
+  if (isPersistentCollection(type, initializer)) {
+    violations.push(`direct-persistence-field:${memberName}`);
+  }
+}
+
+function isPersistentCollection(
+  type: ts.TypeNode | undefined,
+  initializer: ts.Expression | undefined,
+): boolean {
+  if (type !== undefined) {
+    if (ts.isArrayTypeNode(type) || ts.isTupleTypeNode(type)) {
+      return true;
+    }
+
+    const collectionType = typeReferenceName(type);
+    if (
+      collectionType === "Map" ||
+      collectionType === "Set" ||
+      collectionType === "Array" ||
+      collectionType === "ReadonlyArray"
+    ) {
+      return true;
+    }
+  }
+
+  if (initializer === undefined) {
+    return false;
+  }
+
+  if (ts.isArrayLiteralExpression(initializer)) {
+    return true;
+  }
+
+  return (
+    ts.isNewExpression(initializer) &&
+    ts.isIdentifier(initializer.expression) &&
+    (initializer.expression.text === "Map" ||
+      initializer.expression.text === "Set" ||
+      initializer.expression.text === "Array")
+  );
+}
+
+function inspectForbiddenConcreteConstruction(
+  node: ts.Node,
+  violations: string[],
+): void {
+  visit(node);
+
+  function visit(current: ts.Node): void {
+    if (
+      ts.isNewExpression(current) &&
+      ts.isIdentifier(current.expression) &&
+      concreteRepositories.has(current.expression.text)
+    ) {
+      violations.push(
+        `concrete-repository-created-in-application-method:${current.expression.text}`,
+      );
+    }
+    current.forEachChild(visit);
+  }
+}
+
+function addRepositoryDependency(
+  type: ts.TypeNode | undefined,
+  dependencyTypes: Set<string>,
+): void {
+  const referencedType = typeReferenceName(type);
+  if (referencedType !== undefined && requiredContracts.has(referencedType)) {
+    dependencyTypes.add(referencedType);
+  }
+}
+
+function isParameterProperty(parameter: ts.ParameterDeclaration): boolean {
+  return (
+    parameter.modifiers?.some(
+      (modifier) =>
+        modifier.kind === ts.SyntaxKind.PublicKeyword ||
+        modifier.kind === ts.SyntaxKind.ProtectedKeyword ||
+        modifier.kind === ts.SyntaxKind.PrivateKeyword ||
+        modifier.kind === ts.SyntaxKind.ReadonlyKeyword,
+    ) ?? false
+  );
+}
+
+function typeReferenceName(type: ts.TypeNode | undefined): string | undefined {
+  if (type === undefined || !ts.isTypeReferenceNode(type)) {
+    return undefined;
+  }
+
+  return ts.isIdentifier(type.typeName) ? type.typeName.text : type.typeName.right.text;
+}
+
+function collectNamedDeclarations(sourceFiles: readonly ts.SourceFile[]): {
+  interfaces: Map<string, ts.InterfaceDeclaration>;
+  classes: Map<string, ts.ClassDeclaration>;
+} {
+  const interfaces = new Map<string, ts.InterfaceDeclaration>();
+  const classes = new Map<string, ts.ClassDeclaration>();
+
+  for (const sourceFile of sourceFiles) {
+    visit(sourceFile);
+  }
+
+  return { interfaces, classes };
+
+  function visit(node: ts.Node): void {
+    if (ts.isInterfaceDeclaration(node)) {
+      interfaces.set(node.name.text, node);
+    } else if (ts.isClassDeclaration(node) && node.name !== undefined) {
+      classes.set(node.name.text, node);
+    }
+    node.forEachChild(visit);
+  }
 }
