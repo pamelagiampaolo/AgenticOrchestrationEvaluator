@@ -2,34 +2,25 @@
 
 Private evaluation workspace for the `TesiAgenticAI` project.
 
-The repository keeps reserved tests outside the main source repository and runs
-them in an isolated Windows Sandbox. Each evaluation produces an integrity
-manifest, machine-readable evidence, and execution logs under `runs/`.
+The repository keeps reserved tests outside the main source repository. Its
+evaluator is being rebuilt around a local controlled runner that will produce an
+integrity manifest, machine-readable evidence, and execution logs under `runs/`.
 
 ## Structure
 
-- `evaluator/host/`: user-facing `Invoke-*` evaluation entry points.
-- `evaluator/guest/`: internal `Run-*` workers and task-specific process helpers.
+- `evaluator/`: clean starting point for the local evaluator. The retired
+  Windows Sandbox architecture is documented under `docs/archive/`.
 - `reserved/`: private Vitest controls and their configurations.
 - `fixture/`: frozen submission used by the evaluator smoke test.
 - `fixtures/`: compliant and violating submissions for architectural controls.
 - `runs/`: generated evaluation inputs, outputs, and evidence (not versioned).
 
-## Evaluator entry points
+## Evaluator status
 
-- `evaluator/host/Invoke-EvaluatorSmokeTest.ps1`: validates the evaluator itself with the
-  frozen arithmetic fixture; it does not execute a T1-T6 task.
-- `evaluator/host/Invoke-T1R01CandidateIsolationEvaluation.ps1`: executes the dedicated
-  T1-R01 candidate-identity and reserved-file access proof.
-- `evaluator/host/Invoke-T5R01RepositoryArchitectureEvaluation.ps1`: executes only T5-R01,
-  which checks that application logic depends on repository contracts.
-- `evaluator/host/Invoke-SelectedTaskTestSuiteEvaluation.ps1 -TaskId T1|...|T6`: selects one
-  task and executes both its public suite and every matching reserved control
-  (`reserved/tN-r*.test.ts`).
-
-Each `Invoke-*` host entry point has a correspondingly named `Run-*Guest.ps1`
-worker. The worker is an implementation detail and is not invoked directly by
-the user.
+The previous Windows Sandbox entry points have been retired. Their behavior,
+limitations, and reusable concepts are preserved in
+`docs/archive/windows-sandbox-evaluator.md`. A local evaluator will replace
+them incrementally, starting from the smoke test.
 
 The evaluator currently expects the main repository at
 `C:\Users\Utente\TesiAgenticAI`. This path is configured in the host-side
