@@ -13,7 +13,7 @@ test("T6-R01", () => {
     { productId: "P-003", quantity: 4 },
   ]);
 
-  expect(inventory.confirmOrder(order.orderId)).toEqual({
+  expect.soft(inventory.confirmOrder(order.orderId)).toEqual({
     orderId: "O-001",
     status: "partially-fulfilled",
     lines: [
@@ -22,7 +22,7 @@ test("T6-R01", () => {
       fulfillmentLine("P-003", 4, 4),
     ],
   });
-  expect(stockState(inventory)).toEqual({
+  expect.soft(stockState(inventory)).toEqual({
     "P-001": 0,
     "P-002": 0,
     "P-003": 6,
