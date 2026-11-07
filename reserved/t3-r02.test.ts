@@ -21,7 +21,7 @@ test("T3-R02", () => {
   expect(() => inventory.confirmOrder(order.orderId)).toThrowError(
     expect.objectContaining({ code: "INSUFFICIENT_STOCK" }),
   );
-  expect(readObservableState(inventory)).toEqual(stateBeforeConfirmation);
+  expect.soft(readObservableState(inventory)).toEqual(stateBeforeConfirmation);
   expect(inventory.getOrder(order.orderId).status).toBe("draft");
 });
 
