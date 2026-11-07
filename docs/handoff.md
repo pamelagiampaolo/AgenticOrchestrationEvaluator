@@ -157,10 +157,25 @@ le anomalie strutturali dei report sono coperte dai test della validazione, non 
 la verifica dei manifest nella run controlla gli hash dei file ma non rielenca i test con Vitest;
 nessuna esecuzione parallela provata; il lock file registrato e quello della baseline.
 
-Passi successivi proposti: (8) test di accettazione e isolamento end-to-end piu ampi (altri task,
-tentativi di modificare test e dipendenze, interruzione della run); (9) riconciliazione
-documentale e proposta di commit finale. Non eseguire valutazioni ufficiali senza nuova
-autorizzazione e senza le prove pilota previste dal contratto.
+Passo 8 completato: test di accettazione (`evaluator/tests/Test-Acceptance.ps1`, 19 asserzioni) e
+matrice dei controlli attraverso l'orchestratore (`evaluator/tests/Test-ControlMatrix.ps1`, 39
+fixture, 40 asserzioni), helper in `evaluator/tests/AcceptanceHelpers.ps1`. Decisioni del passo 7
+confermate dall'utente. Risultati e limiti nel contratto (sezione "Accettazione e isolamento") e
+nell'audit (sezione "Verifica attraverso l'orchestratore").
+
+Questioni aperte del passo 8, decise dall'utente il 7 novembre 2026 e chiuse nello stesso giorno
+(dettagli nel contratto, sezione "Accettazione e isolamento"):
+
+1. Dipendenze canoniche modificabili dal codice candidato: accettato, nessuna verifica; agli agenti
+   sara vietato modificare `node_modules`.
+2. 11 fixture validate solo sul proprio controllo: deroga accettata, fixture invariate.
+3. `rootDir` nelle fixture: corretto in tutti i 39 `tsconfig.json` (4 creati); tolto l'adattamento
+   dal test della matrice.
+4. T3 superato dalla baseline: documentato, nessun nuovo controllo.
+
+Prossimo e ultimo passo proposto: riconciliazione documentale finale (contratto, audit, README,
+handoff coerenti con lo stato reale e tra loro). Le prove pilota e le valutazioni ufficiali sono
+attivita successive e richiedono una nuova autorizzazione.
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 

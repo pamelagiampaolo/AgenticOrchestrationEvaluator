@@ -121,6 +121,28 @@ evidenza positiva e negativa. Anche l'ultimo gruppo legacy `fixtures/t5/` e stat
 successivo e la generazione e verifica dei manifest canonici, senza iniziare
 contestualmente il runner.
 
+## Verifica attraverso l'orchestratore (Passo 8, 7 novembre 2026)
+
+`evaluator/tests/Test-ControlMatrix.ps1` esegue tutte le 39 fixture con l'orchestratore reale.
+Osservato:
+
+- 28 fixture soddisfano la proprieta forte: la conforme supera l'intera suite riservata del task e
+  la violante fallisce soltanto il proprio controllo (tutte quelle di T1, T3, T4, T2-R01/R02,
+  T6-R01/R02/R03).
+- 11 fixture soddisfano soltanto la proprieta registrata per loro sopra (proprio controllo):
+  T2-R03, T5-R01 (3 varianti), T5-R02, T5-R03, T6-R04. Le conformi falliscono altri controlli del
+  task (per esempio la conforme di T2-R03 fallisce T2-R01); le violanti falliscono anche controlli
+  diversi dal proprio, in contrasto con il requisito del contratto che la violante non fallisca per
+  errori estranei. Deroga accettata dall'utente: non vengono riscritte (vedi il contratto).
+- Le fixture avevano un `tsconfig.json` minimale senza `rootDir` (T2-R03 e T6-R04 non lo avevano
+  affatto): con TypeScript 7 il typecheck passava ma la build con emissione falliva con TS5011,
+  perche erano state verificate solo con il typecheck. Corretto il 7 novembre 2026: tutte hanno ora
+  `rootDir: "src"` e la matrice le usa senza adattamenti (salvo il lock file minimo).
+- Sulla baseline non modificata i tre controlli riservati di T3 passano tutti (3/3), mentre il test
+  pubblico T3-P02 fallisce: il difetto della baseline che T3-P02 intercetta non e coperto da alcun
+  controllo riservato. Per tutti gli altri task la baseline fallisce ogni controllo riservato.
+  Decisione dell'utente: nessun nuovo controllo; il limite e documentato nel contratto.
+
 ## Limiti e lavoro non verificato
 
 - Sono stati eseguiti soltanto i test mirati `T1-R01`, `T1-R02`, `T1-R03`,

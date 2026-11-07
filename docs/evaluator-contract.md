@@ -408,6 +408,44 @@ validazione dei report e produce `evidence/evaluation-summary.json`. Decisioni d
   `package.json` delle dipendenze canoniche), hash SHA-256 del lock file della baseline e commit
   dell'evaluator (con `-dirty` se i file rilevanti sono modificati); `unavailable` se non acquisibile.
 
+## Accettazione e isolamento (Passo 8, 7 novembre 2026)
+
+Le decisioni del Passo 7 sull'orchestratore sono state confermate dall'utente il 7 novembre 2026.
+Risultati osservati con TypeScript 7.0.2 e Vitest 5.1.0 reali (`evaluator/tests/Test-Acceptance.ps1`,
+`evaluator/tests/Test-ControlMatrix.ps1`):
+
+- Determinismo: due run della stessa submission producono riepiloghi equivalenti.
+- Ignorati dal risultato: test pubblici e finti test riservati forniti dal candidato,
+  `vitest.config.ts`/`vite.config.ts`, `node_modules` (anche un `tsc` finto) e `scripts` della
+  submission.
+- Rilevati come `integrity-error`: codice candidato che, durante la propria esecuzione, modifica la
+  copia dei test riservati, il proprio sorgente originale o la propria copia archiviata. Il
+  valutatore rileva, non impedisce.
+- Interruzione della run: nessun riepilogo scritto, archivio e manifest integri, lo stesso `RunId`
+  non e riutilizzabile, la submission si rivaluta con un nuovo `RunId`. La copia di lavoro della run
+  interrotta resta su disco e va rimossa manualmente.
+- Matrice dei controlli (39 fixture attraverso l'orchestratore): vedi `docs/control-matrix-audit.md`.
+
+Decisioni dell'utente sui limiti verificati (7 novembre 2026):
+
+- **Dipendenze canoniche modificabili e non verificate: accettato, nessuna verifica.** Il codice
+  candidato puo scrivere nella directory delle dipendenze attraverso la junction `node_modules` e il
+  valutatore non lo rileva (esito `passed` nell'esperimento). La mitigazione e organizzativa: agli
+  agenti sara vietato modificare `node_modules`; intervengono soltanto sul progetto. Resta un limite
+  da dichiarare: le run successive userebbero dipendenze eventualmente alterate.
+- **Fixture validate solo sul proprio controllo: accettato.** Per T2-R03, T5-R01 (tre varianti),
+  T5-R02, T5-R03 e T6-R04 vale la proprieta "la conforme supera il proprio controllo e la violante
+  lo fallisce per il motivo previsto", non quella sull'intera suite del task. Ogni controllo resta
+  dimostrato discriminante; non si riscrivono le fixture.
+- **`rootDir` nelle fixture: corretto.** Tutti i `tsconfig.json` delle fixture hanno ora
+  `rootDir: "src"`; sono stati creati quelli mancanti di T2-R03 e T6-R04.
+- **T3 superato dalla baseline: accettato e documentato, nessun nuovo controllo.** L'esito della
+  valutazione resta corretto (una submission T3 invariata ottiene `test-failures` per T3-P02), ma
+  per T3 il numero di controlli riservati superati misura robustezza e assenza di regressioni, non la
+  presenza della funzionalita. Va considerato nell'analisi.
+- **Test riservati leggibili** dal codice candidato durante la propria esecuzione: atteso dal modello
+  di fiducia (stesso processo e stessa identita).
+
 ## Timeout iniziali
 
 I limiti iniziali, da confermare tramite prove pilota, sono:
