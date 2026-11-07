@@ -84,7 +84,19 @@ Limiti: lo schema non e ancora prodotto da un runner reale; il validatore copre
 solo il sottoinsieme di JSON Schema usato; i codici sono una proposta di questo
 passo, documentata nel contratto e da confermare.
 
-Passi successivi pianificati: (3) runner: ingresso e copia immutabile; (4) build/typecheck; (5) suite
+Passo 3 completato: ingresso del runner (`evaluator/EvaluationInput.psm1`,
+`Initialize-EvaluationRun.ps1`, test in `evaluator/tests/Test-EvaluationInput.ps1`,
+44 asserzioni superate). Decisioni da confermare: esclusione di `node_modules` e
+`dist`, rifiuto di symlink/junction, hash a byte esatti, "immutabile" = sola
+lettura + manifest (dettagli nel contratto). Mutazioni di controllo: senza
+controllo dei collegamenti (3 falliti), senza esclusioni (crash e 3 falliti),
+senza sola lettura (3 falliti), senza `RunsRoot` annidato (2 falliti), senza
+verifica del sorgente (1 fallito). Limite: non e coperto dai test che
+`New-EvaluationRun` chiami davvero `Assert-RunInputIntegrity`; la funzione e
+testata da sola. Non verificati: percorsi molto lunghi, caratteri speciali nei
+nomi dei file, concorrenza di piu run.
+
+Passi successivi pianificati: (4) runner: build/typecheck; (5) suite
 pubblica e riservata con timeout; (6) validazione dei report; (7) test di
 accettazione e isolamento; (8) riconciliazione documentale. Non avviare il runner
 senza nuova autorizzazione.

@@ -56,6 +56,22 @@ dell'esecuzione:
 5. esegue build e test soltanto sulla copia di lavoro;
 6. verifica che submission archiviata e input originale non siano cambiati.
 
+Decisioni del Passo 3 (7 novembre 2026), da confermare:
+
+- `node_modules/` e `dist/` di primo livello non fanno parte dell'input valutato:
+  le dipendenze canoniche sono fornite dal valutatore. L'esclusione e il fatto
+  che fossero presenti nel sorgente sono registrati in
+  `input/submission-manifest.json`.
+- Symlink e junction nel resto della submission sono rifiutati come
+  `invalid-input` e non vengono seguiti.
+- Il manifest della submission usa SHA-256 sui byte esatti (nessuna
+  normalizzazione dei fine riga), a differenza dei manifest delle suite.
+- "Immutabile" significa attributo di sola lettura sui file archiviati piu
+  verifica con manifest; non e una barriera di sicurezza contro codice ostile.
+- Le directory vuote non fanno parte del manifest.
+- `work/submission/` sotto la run contiene la copia di lavoro; viene rimossa dopo
+  l'acquisizione di report e manifest, come previsto sopra.
+
 Finche l'orchestratore principale non garantira esplicitamente la conservazione
 della submission, l'evaluator ne conserva sempre una copia completa.
 

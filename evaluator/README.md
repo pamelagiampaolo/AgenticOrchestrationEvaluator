@@ -30,6 +30,24 @@ Senza `-ToolsNodeModulesPath` la verifica controlla solo file e hash e lo dichia
 Una modifica ai test riservati richiede una nuova `suiteVersion`, non un
 aggiornamento retroattivo.
 
+## Ingresso della valutazione (preparazione della run)
+
+```powershell
+.\evaluator\Initialize-EvaluationRun.ps1 -SubmissionPath <BenchmarkTarget-copia> -TaskId T1 [-RunsRoot <dir>] [-RunId <id>]
+```
+
+Valida `TaskId` (`T1`..`T6`, maiuscolo), `RunId` e la struttura della submission
+(`package.json`, `package-lock.json`, `tsconfig.json`, `src/`), calcola
+`submission-manifest.json` (SHA-256 sui byte esatti), archivia una copia in sola
+lettura in `runs/<runId>/input/submission/` e prepara `runs/<runId>/work/submission/`.
+`node_modules/` e `dist/` di primo livello sono esclusi e la loro presenza e
+registrata; symlink e junction altrove sono rifiutati. Sorgente, archivio e copia di
+lavoro vengono confrontati col manifest prima di dichiarare la run pronta.
+Stampa JSON su stdout. Exit code: 0 `ready`, 20 `invalid-input`, 30
+`integrity-error`, 40 `evaluator-error`. Un input non valido non crea directory.
+Test: `.\evaluator\tests\Test-EvaluationInput.ps1`. Questo script non esegue build
+ne test.
+
 ## Riepilogo ed exit code
 
 `schemas/evaluation-summary.schema.json` (v1) descrive il riepilogo della

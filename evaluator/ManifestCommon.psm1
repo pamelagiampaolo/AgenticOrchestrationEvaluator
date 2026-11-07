@@ -46,6 +46,11 @@ Directory rispetto a cui calcolare i percorsi relativi.
 .PARAMETER Files
 Oggetti `FileInfo` da includere.
 
+.PARAMETER RawBytes
+Calcola l'hash sui byte esatti, senza normalizzare i fine riga. Serve quando
+si verifica l'integrita' di una copia; i manifest delle suite usano invece
+l'hash normalizzato.
+
 .OUTPUTS
 Oggetti con `path` e `sha256`, ordinati per percorso (ordinamento ordinale).
 #>
@@ -53,14 +58,17 @@ function Get-FileEntries {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Root,
-        [Parameter(Mandatory)][AllowEmptyCollection()][System.IO.FileInfo[]]$Files
+        [Parameter(Mandatory)][AllowEmptyCollection()][System.IO.FileInfo[]]$Files,
+        [switch]$RawBytes
     )
 
     $rootPrefix = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\') + '\'
     $entries = foreach ($file in $Files) {
+        if ($RawBytes) { $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+        else { $hash = Get-NormalizedFileSha256 -Path $file.FullName }
         [pscustomobject][ordered]@{
             path   = $file.FullName.Substring($rootPrefix.Length).Replace('\', '/')
-            sha256 = Get-NormalizedFileSha256 -Path $file.FullName
+            sha256 = $hash
         }
     }
     return @($entries | Sort-Object -Property @{ Expression = { $_.path }; Ascending = $true } -Culture 'iv' -CaseSensitive)
