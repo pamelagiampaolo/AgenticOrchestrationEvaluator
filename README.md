@@ -8,7 +8,8 @@ manifest, machine-readable evidence, and execution logs under `runs/`.
 
 ## Structure
 
-- `evaluator/`: host and guest PowerShell evaluation scripts.
+- `evaluator/host/`: user-facing `Invoke-*` evaluation entry points.
+- `evaluator/guest/`: internal `Run-*` workers and task-specific process helpers.
 - `reserved/`: private Vitest controls and their configurations.
 - `fixture/`: frozen submission used by the evaluator smoke test.
 - `fixtures/`: compliant and violating submissions for architectural controls.
@@ -16,13 +17,13 @@ manifest, machine-readable evidence, and execution logs under `runs/`.
 
 ## Evaluator entry points
 
-- `Invoke-EvaluatorSmokeTest.ps1`: validates the evaluator itself with the
+- `evaluator/host/Invoke-EvaluatorSmokeTest.ps1`: validates the evaluator itself with the
   frozen arithmetic fixture; it does not execute a T1-T6 task.
-- `Invoke-T1R01CandidateIsolationEvaluation.ps1`: executes the dedicated
+- `evaluator/host/Invoke-T1R01CandidateIsolationEvaluation.ps1`: executes the dedicated
   T1-R01 candidate-identity and reserved-file access proof.
-- `Invoke-T5R01RepositoryArchitectureEvaluation.ps1`: executes only T5-R01,
+- `evaluator/host/Invoke-T5R01RepositoryArchitectureEvaluation.ps1`: executes only T5-R01,
   which checks that application logic depends on repository contracts.
-- `Invoke-SelectedTaskTestSuiteEvaluation.ps1 -TaskId T1|...|T6`: selects one
+- `evaluator/host/Invoke-SelectedTaskTestSuiteEvaluation.ps1 -TaskId T1|...|T6`: selects one
   task and executes both its public suite and every matching reserved control
   (`reserved/tN-r*.test.ts`).
 

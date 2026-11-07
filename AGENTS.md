@@ -126,6 +126,11 @@ automatizzabili. Distinguere:
 
 ## Integrita e validita sperimentale
 
+Applicare il modello di fiducia e la decisione architetturale documentati in
+`docs/evaluation-threat-model.md`. Non assumere che la virtualizzazione protegga
+la segretezza dei test quando candidato e controlli condividono processo e
+identita.
+
 Ogni confronto deve usare lo stesso commit iniziale, gli stessi requisiti, lo
 stesso ambiente, gli stessi test di valutazione e limiti comparabili. Ogni
 esecuzione deve partire da una copia pulita della baseline, senza modifiche o
