@@ -1,0 +1,303 @@
+{
+    "schemaVersion":  1,
+    "suite":  "reserved",
+    "suiteVersion":  "reserved-1",
+    "hashing":  {
+                    "algorithm":  "SHA-256",
+                    "lineEndings":  "CRLF normalizzato in LF prima dell\u0027hash"
+                },
+    "files":  [
+                  {
+                      "path":  "reserved/smoke.test.ts",
+                      "sha256":  "b25e40cdc64c081f7f095b8531201c1a1cdbc35f0b7e35615cf0b73c29b54221"
+                  },
+                  {
+                      "path":  "reserved/t1-r01.test.ts",
+                      "sha256":  "083b69e57cc3380e72315edf98552012ff8f6bd48fa02defe1439540fd5b2d1f"
+                  },
+                  {
+                      "path":  "reserved/t1-r02.test.ts",
+                      "sha256":  "04338c2e782bce08a907562d69ac93cd952aa9c5595b30c0ddf1b7e622f856a0"
+                  },
+                  {
+                      "path":  "reserved/t1-r03.test.ts",
+                      "sha256":  "b701a374e5b1fbe4aa36d5eb91d2eb535e83fac1c7922a04569d6a80033d4f94"
+                  },
+                  {
+                      "path":  "reserved/t2-r01.test.ts",
+                      "sha256":  "7673171970f03ef18ef1599f5d2ebda8b8ca1585f6fb9159e7384b9b4c401d05"
+                  },
+                  {
+                      "path":  "reserved/t2-r02.test.ts",
+                      "sha256":  "1234740f57395ed015aeb832322819f496ec977995a83cdc33b36ff939a1d563"
+                  },
+                  {
+                      "path":  "reserved/t2-r03.test.ts",
+                      "sha256":  "4b11e926d8c4464e268000cd18f23509fc50ec9b46dfe40772a4261ce615e81b"
+                  },
+                  {
+                      "path":  "reserved/t3-r01.test.ts",
+                      "sha256":  "a0234a6b111592ba377f10fc168b309caf9f38f21a83d615146076bad7889455"
+                  },
+                  {
+                      "path":  "reserved/t3-r02.test.ts",
+                      "sha256":  "75b5a597288e2928f4da219186ed4cd47c728792360ce4133be6b7d387e29f32"
+                  },
+                  {
+                      "path":  "reserved/t3-r03.test.ts",
+                      "sha256":  "a33603df9b7ab40752954c0b9bcfe777c2eee27bbb50688bf83177ba3c67a9c2"
+                  },
+                  {
+                      "path":  "reserved/t4-r01.test.ts",
+                      "sha256":  "927e0638f23462fc5f2741d80f595ecd2b2c57c0d48de0e5f111b59bffe4b0c4"
+                  },
+                  {
+                      "path":  "reserved/t4-r02.test.ts",
+                      "sha256":  "cf4d8a7da0f21cefade2f21eb129b46289fcc792019f248a3b18c1c7f328db6d"
+                  },
+                  {
+                      "path":  "reserved/t4-r03.test.ts",
+                      "sha256":  "113849938717400edb3c2d2f08361c4e7334b8a0eefb45454353a0d13031bead"
+                  },
+                  {
+                      "path":  "reserved/t5-r01.test.ts",
+                      "sha256":  "88ebbdb81b2db4d7fe0abb55c23a48d1eb9bbbb567b8bc3e440890fd83f80aad"
+                  },
+                  {
+                      "path":  "reserved/t5-r02.test.ts",
+                      "sha256":  "c36b7b4b2b734162ba66139400ee9d248e81c1332e591269beb3c9093879adde"
+                  },
+                  {
+                      "path":  "reserved/t5-r03.test.ts",
+                      "sha256":  "2c76a09d6d136453098ed6b6f143753b115063f1b1b27d9322802dd8787dc32d"
+                  },
+                  {
+                      "path":  "reserved/t6-r01.test.ts",
+                      "sha256":  "2b1b7a4d7c0ec51b514a58fd13f9a1d49eddc90bf261128b846e46ed8e46c9f5"
+                  },
+                  {
+                      "path":  "reserved/t6-r02.test.ts",
+                      "sha256":  "bb03a7ddcf46d46ebff23904079c21506ff0f17de193d4026f87ec0b54c3528e"
+                  },
+                  {
+                      "path":  "reserved/t6-r03.test.ts",
+                      "sha256":  "c5c7990ea4db781044c0f88267a429289c8dd9e8387acac7a09c863b0acf20e2"
+                  },
+                  {
+                      "path":  "reserved/t6-r04.test.ts",
+                      "sha256":  "54468f3f71eaaed593b82ef306367511a889113a39792796f768ddd2badce1b9"
+                  },
+                  {
+                      "path":  "reserved/vitest.reserved.config.ts",
+                      "sha256":  "c6dcc56e6461e58987db280e6fb81578b278551dd1185a04812d02dd62a2f269"
+                  },
+                  {
+                      "path":  "reserved/vitest.reserved-task.config.ts",
+                      "sha256":  "f3d699a4d2d3a5038ff317c947708650444bc1b17e464e907df320bcf90fcfd5"
+                  },
+                  {
+                      "path":  "reserved/vitest.t1-r01.config.ts",
+                      "sha256":  "06169b047dc65b6b237653d2692e604885a0d6465c938ed129224709d02e64a2"
+                  },
+                  {
+                      "path":  "reserved/vitest.t1-r02.config.ts",
+                      "sha256":  "25efec74c0aabc1e2c00f08cceb5d2b63d94cbb70732a217e0846484c112d022"
+                  },
+                  {
+                      "path":  "reserved/vitest.t1-r03.config.ts",
+                      "sha256":  "a5edf81088701b2c9c5ffae80ea09bb28a6685fddbb106c13e2a4cd30be4307a"
+                  },
+                  {
+                      "path":  "reserved/vitest.t2-r01.config.ts",
+                      "sha256":  "6fd2a4dd1cd7bbb67adc7e4d3d2c17ca9d1dc42278f3211502d9554f59df9af5"
+                  },
+                  {
+                      "path":  "reserved/vitest.t2-r02.config.ts",
+                      "sha256":  "ffcdc94605478b83c1c822a0b9e51369e73a58fc491eba5e3dee798e2ac4a039"
+                  },
+                  {
+                      "path":  "reserved/vitest.t3-r01.config.ts",
+                      "sha256":  "a1cc1a4e95f94f80944892ee0b9c4f03862e1068f9d4dc027af1a3bc40a94e40"
+                  },
+                  {
+                      "path":  "reserved/vitest.t3-r02.config.ts",
+                      "sha256":  "da2bc617ebc30f0518f2633eeb4d773b72b0868b257eb5b00866dd6facdba0c2"
+                  },
+                  {
+                      "path":  "reserved/vitest.t3-r03.config.ts",
+                      "sha256":  "bfe92c24a97a857bbd4a39f9afff7bea0c8b31aed26cb96026c483bda640f251"
+                  },
+                  {
+                      "path":  "reserved/vitest.t4-r01.config.ts",
+                      "sha256":  "a3df31d82aeaf1c8ec578ac4dd44147fe108ea6a0c1a2654f89041a2571e8f5d"
+                  },
+                  {
+                      "path":  "reserved/vitest.t4-r02.config.ts",
+                      "sha256":  "c4f8eb035209d74f9e9ee1d1e3f147d020539fe575dca3d0542227420f1ed067"
+                  },
+                  {
+                      "path":  "reserved/vitest.t4-r03.config.ts",
+                      "sha256":  "38b9df565c989a41a7e0b3b67c4dcb1dca0cc3de850016ea3c108838a35968f0"
+                  },
+                  {
+                      "path":  "reserved/vitest.t5-r01.config.ts",
+                      "sha256":  "c2fbfebfd941db54ed7b085d26a3bda40c7e04dc133def9a05f9445e1a5c926e"
+                  },
+                  {
+                      "path":  "reserved/vitest.t5-r02.config.ts",
+                      "sha256":  "041b9c5ff0ef0d566ac2b6a9d0d60debc1ef589e65ef9adccf715e18b5c3ea44"
+                  },
+                  {
+                      "path":  "reserved/vitest.t5-r03.config.ts",
+                      "sha256":  "8857c82c16210a10cf87a76f0ca2c61b0865fcee87de8148f53bd44a1e72c3ac"
+                  },
+                  {
+                      "path":  "reserved/vitest.t6-r01.config.ts",
+                      "sha256":  "8e204bc4fcf99bc37ab5ca1abd2e4ef3345a956974a3e320280623fcbbda89c5"
+                  },
+                  {
+                      "path":  "reserved/vitest.t6-r02.config.ts",
+                      "sha256":  "75d9a74b335a44d727d1b74bacd7a1b83f0f3f345201e32c6500addc9961da21"
+                  },
+                  {
+                      "path":  "reserved/vitest.t6-r03.config.ts",
+                      "sha256":  "32b26e09d214acea4acdb8404d017b1b2c4a1cda79bb8e452591d800d6987df3"
+                  }
+              ],
+    "tasks":  {
+                  "T1":  {
+                             "expectedTestCount":  3,
+                             "tests":  [
+                                           {
+                                               "id":  "T1-R01",
+                                               "name":  "T1-R01",
+                                               "file":  "reserved/t1-r01.test.ts"
+                                           },
+                                           {
+                                               "id":  "T1-R02",
+                                               "name":  "T1-R02",
+                                               "file":  "reserved/t1-r02.test.ts"
+                                           },
+                                           {
+                                               "id":  "T1-R03",
+                                               "name":  "T1-R03",
+                                               "file":  "reserved/t1-r03.test.ts"
+                                           }
+                                       ]
+                         },
+                  "T2":  {
+                             "expectedTestCount":  3,
+                             "tests":  [
+                                           {
+                                               "id":  "T2-R01",
+                                               "name":  "T2-R01",
+                                               "file":  "reserved/t2-r01.test.ts"
+                                           },
+                                           {
+                                               "id":  "T2-R02",
+                                               "name":  "T2-R02",
+                                               "file":  "reserved/t2-r02.test.ts"
+                                           },
+                                           {
+                                               "id":  "T2-R03",
+                                               "name":  "T2-R03",
+                                               "file":  "reserved/t2-r03.test.ts"
+                                           }
+                                       ]
+                         },
+                  "T3":  {
+                             "expectedTestCount":  3,
+                             "tests":  [
+                                           {
+                                               "id":  "T3-R01",
+                                               "name":  "T3-R01",
+                                               "file":  "reserved/t3-r01.test.ts"
+                                           },
+                                           {
+                                               "id":  "T3-R02",
+                                               "name":  "T3-R02",
+                                               "file":  "reserved/t3-r02.test.ts"
+                                           },
+                                           {
+                                               "id":  "T3-R03",
+                                               "name":  "T3-R03",
+                                               "file":  "reserved/t3-r03.test.ts"
+                                           }
+                                       ]
+                         },
+                  "T4":  {
+                             "expectedTestCount":  3,
+                             "tests":  [
+                                           {
+                                               "id":  "T4-R01",
+                                               "name":  "T4-R01",
+                                               "file":  "reserved/t4-r01.test.ts"
+                                           },
+                                           {
+                                               "id":  "T4-R02",
+                                               "name":  "T4-R02",
+                                               "file":  "reserved/t4-r02.test.ts"
+                                           },
+                                           {
+                                               "id":  "T4-R03",
+                                               "name":  "T4-R03",
+                                               "file":  "reserved/t4-r03.test.ts"
+                                           }
+                                       ]
+                         },
+                  "T5":  {
+                             "expectedTestCount":  3,
+                             "tests":  [
+                                           {
+                                               "id":  "T5-R01",
+                                               "name":  "T5-R01 application logic depends on repository contracts",
+                                               "file":  "reserved/t5-r01.test.ts"
+                                           },
+                                           {
+                                               "id":  "T5-R02",
+                                               "name":  "T5-R02",
+                                               "file":  "reserved/t5-r02.test.ts"
+                                           },
+                                           {
+                                               "id":  "T5-R03",
+                                               "name":  "T5-R03",
+                                               "file":  "reserved/t5-r03.test.ts"
+                                           }
+                                       ]
+                         },
+                  "T6":  {
+                             "expectedTestCount":  4,
+                             "tests":  [
+                                           {
+                                               "id":  "T6-R01",
+                                               "name":  "T6-R01",
+                                               "file":  "reserved/t6-r01.test.ts"
+                                           },
+                                           {
+                                               "id":  "T6-R02",
+                                               "name":  "T6-R02",
+                                               "file":  "reserved/t6-r02.test.ts"
+                                           },
+                                           {
+                                               "id":  "T6-R03",
+                                               "name":  "T6-R03",
+                                               "file":  "reserved/t6-r03.test.ts"
+                                           },
+                                           {
+                                               "id":  "T6-R04",
+                                               "name":  "T6-R04",
+                                               "file":  "reserved/t6-r04.test.ts"
+                                           }
+                                       ]
+                         }
+              },
+    "smoke":  {
+                  "expectedTestCount":  1,
+                  "tests":  [
+                                {
+                                    "name":  "reserved evaluator smoke control \u003e accepts the known-good frozen fixture",
+                                    "file":  "reserved/smoke.test.ts"
+                                }
+                            ]
+              }
+}

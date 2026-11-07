@@ -36,8 +36,8 @@ osservate. Non certificano ancora un'esecuzione end-to-end del valutatore.
 
 ## Stato non ancora completato
 
-- Non esistono ancora manifest canonici congelati per le suite pubbliche e
-  riservate.
+- Esiste il manifest canonico della suite riservata (`manifests/reserved-suite.manifest.json`,
+  `reserved-1`). Mancano i manifest della baseline e delle suite pubbliche.
 - Il runner locale generale non e ancora implementato.
 - Report machine-readable, schema JSON, exit code, timeout e verifiche generali
   di integrita non sono ancora congelati o validati end-to-end.
@@ -55,8 +55,17 @@ dell'utente. Verifica eseguita in copia temporanea (Vitest di `BenchmarkTarget`)
 T5-R01 passa con entrambe le fixture conformi e fallisce con `direct-persistence`;
 T5-R02 e T5-R03 passano con le conformi e falliscono con le violanti.
 
-Il passo pianificato e la generazione e verifica dei manifest canonici delle
-suite pubbliche e riservate. Non avviare il runner senza nuova autorizzazione.
+Dopo il commit `69b860e` e stato aggiunto il manifest della suite riservata
+(`evaluator/ReservedManifest.psm1`, `New-ReservedManifest.ps1`,
+`Test-ReservedManifest.ps1`). Verificato: generazione deterministica (due
+generazioni con hash identico), caso positivo exit 0, e exit 1 per hash
+modificato, file rimosso, file extra e `test.skip`; exit 0 con CRLF; exit 2 per
+manifest assente. Limite: `vitest list` non elenca i test saltati, quindi
+skip/todo vanno rilevati anche nei report del futuro runner.
+
+Prossimo passo pianificato: manifest della baseline e delle suite pubbliche
+(dal repository principale, con test parametrici e le 21 esclusioni comuni di
+T6), poi il runner. Non avviare il runner senza nuova autorizzazione.
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 
