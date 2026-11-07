@@ -353,6 +353,31 @@ Decisioni da confermare:
 - Limite noto: Vitest scrive la propria cache in `node_modules/.vite` attraverso la
   junction, cioe dentro le dipendenze canoniche.
 
+## Validazione dei report (Passo 6, 7 novembre 2026)
+
+I report di Vitest sono dati non fidati. `evaluator/ReportValidation.psm1` li confronta
+con i manifest (pubblico per scope, riservato per task) e calcola i conteggi del
+riepilogo: `expected`, `executed` (= `passed` + `failed`), `passed`, `failed`,
+`skipped`, `missing`, `unexpected`. Regole, da confermare:
+
+- `test-failures` (colpa della soluzione): test falliti; file di test che non si carica
+  (stato `failed` con zero asserzioni; i suoi test attesi risultano `missing` ma
+  "spiegati" dal fallimento del file); `success: false` senza altre anomalie
+  (per esempio un errore non gestito durante la run).
+- `evaluator-error`: test attesi mancanti non spiegati, test saltati/`todo`/`pending`
+  tra quelli attesi, test non previsti, test duplicati, test dichiarati escluso (T6)
+  che risultano eseguiti, stati sconosciuti, file fuori dalla directory attesa,
+  `numTotalTests` diverso dalle asserzioni, `success: true` con test o file falliti,
+  report assente o non valido. Prevale su `test-failures`.
+- `passed`: nessuna anomalia e nessun fallimento.
+- Le esclusioni dichiarate di T6 che compaiono come non eseguite non sono anomalie.
+- Gli issue possono contenere nomi di test riservati: sono evidenze per il ricercatore,
+  non per l'agente.
+
+Limite: la validazione e un'ulteriore verifica sulla stessa sorgente di dati; non
+protegge da una submission che alteri il report durante la propria esecuzione
+(stesso processo e stessa identita, come da threat model).
+
 ## Timeout iniziali
 
 I limiti iniziali, da confermare tramite prove pilota, sono:

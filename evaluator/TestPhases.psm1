@@ -24,6 +24,14 @@ $script:TaskIdPattern = '^T[1-6]$'
 # Per T5 e T6 la configurazione del task include gia' i file comuni.
 $script:TasksWithSeparateCommonSuite = @('T1', 'T2', 'T3', 'T4')
 
+# Scope pubblici eseguiti per un task, nell'ordine di esecuzione.
+function Get-PublicScopeNames {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$TaskId)
+    if ($TaskId -in $script:TasksWithSeparateCommonSuite) { return @('common', $TaskId) }
+    return @($TaskId)
+}
+
 function Get-RunTaskId {
     param([string]$RunDirectory)
     $metadataPath = Join-Path $RunDirectory 'input\metadata.json'
@@ -256,10 +264,7 @@ function Invoke-PublicPhase {
     $null = Install-CanonicalPublicSuite -RunDirectory $RunDirectory -BaselinePath $BaselinePath -PublicManifestPath $PublicManifestPath
     Initialize-WorkDependencies -Directory $workPath -ToolsNodeModulesPath $ToolsNodeModulesPath
 
-    $scopes = @()
-    if ($taskId -in $script:TasksWithSeparateCommonSuite) { $scopes += 'common' }
-    $scopes += $taskId
-    $steps = foreach ($scope in $scopes) {
+    $steps = foreach ($scope in Get-PublicScopeNames -TaskId $taskId) {
         @{ name = $scope; config = $manifest.scopes.$scope.config; workingDirectory = $workPath; reportName = "public-$scope-report"; environment = @{} }
     }
     return Invoke-VitestSteps -Suite 'public' -RunDirectory $RunDirectory -ToolsNodeModulesPath $ToolsNodeModulesPath -Steps @($steps) -TimeoutSeconds $TimeoutSeconds
@@ -310,4 +315,4 @@ function Invoke-ReservedPhase {
     return $result
 }
 
-Export-ModuleMember -Function Install-CanonicalPublicSuite, Install-ReservedSuite, Test-ReservedSuiteIntact, Invoke-PublicPhase, Invoke-ReservedPhase
+Export-ModuleMember -Function Get-RunTaskId, Get-PublicScopeNames, Install-CanonicalPublicSuite, Install-ReservedSuite, Test-ReservedSuiteIntact, Invoke-PublicPhase, Invoke-ReservedPhase

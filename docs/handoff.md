@@ -127,9 +127,26 @@ certifica che i test attesi siano stati eseguiti; la cache di Vitest viene scrit
 dentro le dipendenze canoniche; nessun limite di dimensione dei log; reserved e
 submission condividono processo e identita (accettato dal threat model).
 
-Passi successivi pianificati: (6) validazione dei report rispetto ai manifest;
-(7) test di accettazione e isolamento end-to-end; (8) riconciliazione documentale.
-Non avviare il runner senza nuova autorizzazione.
+Passo 6 completato: validazione dei report (`evaluator/ReportValidation.psm1`,
+`Test-PhaseReports.ps1`, test in `evaluator/tests/Test-ReportValidation.ps1`, 33
+asserzioni superate: 21 sintetiche e 12 su report reali). `TestPhases.psm1` ora esporta
+`Get-RunTaskId` e `Get-PublicScopeNames` (usati dalla validazione). Regole di
+classificazione da confermare nel contratto (sezione "Validazione dei report"). Mutazioni
+di controllo rilevate: 8 su 8 (saltati, non previsti, mancanti non spiegati, duplicati,
+incoerenza success/falliti, `numTotalTests`, precedenza struttura/fallimento, escluso
+eseguito). Verificato su report reali: soluzione conforme, controllo violato, sorgente con
+errore di sintassi (file che non si carica), funzione mancante, T6 con 6 esclusioni.
+Limiti: non protegge da una submission che alteri il report durante la propria esecuzione;
+non ancora assemblato il riepilogo finale.
+
+Lavoro rimanente, NON ancora pianificato nei passi precedenti ma necessario: manca
+l'orchestratore `Invoke-Evaluation.ps1` previsto dal contratto, che concateni ingresso,
+build, fasi di test e validazione, raccolga l'ambiente (versioni, hash del lock file),
+scriva `evidence/evaluation-summary.json` (validandolo con lo schema), applichi la
+precedenza degli esiti, rimuova la copia di lavoro e restituisca l'exit code finale.
+Passi successivi proposti: (7) orchestratore e riepilogo finale; (8) test di accettazione
+e isolamento end-to-end; (9) riconciliazione documentale. Non avviare il runner senza
+nuova autorizzazione.
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 

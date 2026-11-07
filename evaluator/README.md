@@ -79,6 +79,19 @@ riverifica dopo l'esecuzione. Report JSON grezzi in `raw/`. Exit code: 0 `passed
 ancora i report rispetto ai manifest. Test:
 `.\evaluator\tests\Test-TestPhases.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
 
+## Validazione dei report
+
+```powershell
+.\evaluator\Test-PhaseReports.ps1 -Suite public|reserved -RunDirectory <runs\runId>
+```
+
+Confronta i report grezzi in `raw/` con i manifest e stampa JSON con `outcome`,
+`counts` (expected, executed, passed, failed, skipped, missing, unexpected), `scopes` e
+`issues`. Exit code: 0 `passed`, 10 `test-failures`, 40 `evaluator-error` (anomalie
+strutturali: mancanti non spiegati, saltati, non previsti, duplicati, report assente o
+incoerente). Le anomalie strutturali prevalgono sui test falliti. Test:
+`.\evaluator\tests\Test-ReportValidation.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
+
 ## Riepilogo ed exit code
 
 `schemas/evaluation-summary.schema.json` (v1) descrive il riepilogo della
