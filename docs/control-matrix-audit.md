@@ -51,20 +51,21 @@ oggi disponibile per l'intera matrice.
 | T6-R01 | Ordine multiprodotto produce quantita e stato globali corretti | `reserved/t6-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione di allocazione multiprodotto |
 | T6-R02 | Due ordini consumano la scorta secondo l'ordine delle conferme | `reserved/t6-r02.test.ts` | assenti | Presente da validare; creare positivo e violazione della priorita delle chiamate |
 | T6-R03 | Un carico non valido non altera scorta o avanzamento dell'ordine | `reserved/t6-r03.test.ts` | assenti | Presente da validare; estendere la coppia di fixture al caso discriminante scelto |
-| T6-R04 | Piu carichi ed evasioni intermedie conservano somme cumulative corrette | assente | assenti | Mancante; implementare un controllo reale e indipendente |
+| T6-R04 | Piu carichi ed evasioni intermedie conservano somme cumulative corrette | `reserved/t6-r04.test.ts` | `fixtures/controls/T6/R04/{compliant,violating}` | Validato: la fixture conforme passa; la violante fallisce al secondo ciclo per quantita evasa non cumulativa (`1` anziche `3`) |
 
 ### Conteggi osservati
 
 - Identificatori canonici previsti: **19**.
-- Identificatori con un test nominale osservabile: **18**.
-- Controlli mancanti: **1** (`T6-R04`).
+- Identificatori con un test nominale osservabile: **19**.
+- Controlli mancanti: **0**.
 - Controlli presenti ma non congelabili nello stato corrente: **3** (`T5-R01`,
   `T5-R02`, `T5-R03`).
 - Controlli dotati di una coppia di directory chiamate `compliant` e
-  `violating`: **3 gruppi**; `T2-R03` usa il layout canonico, mentre `T5-R01` e
-  il gruppo accoppiato `T5-R02/R03` usano ancora layout pre-canonici.
+  `violating`: **4 gruppi**; `T2-R03` e `T6-R04` usano il layout canonico,
+  mentre `T5-R01` e il gruppo accoppiato `T5-R02/R03` usano ancora layout
+  pre-canonici.
 - Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
-  **1 dimostrato** (`T2-R03`).
+  **2 dimostrati** (`T2-R03`, `T6-R04`).
 
 ## Inventario pubblico osservato
 
@@ -111,23 +112,23 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 L'audit non congela ancora le suite. La matrice puo essere completata con
 iterazioni indipendenti nel seguente ordine:
 
-1. implementare e validare `T6-R04`;
-2. sostituire `T5-R01` con un controllo AST TypeScript e almeno due forme
+1. sostituire `T5-R01` con un controllo AST TypeScript e almeno due forme
    sintattiche equivalenti conformi;
-3. separare file, output e fixture di `T5-R02` e `T5-R03`;
-4. creare progressivamente le coppie di fixture degli altri controlli;
-5. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
+2. separare file, output e fixture di `T5-R02` e `T5-R03`;
+3. creare progressivamente le coppie di fixture degli altri controlli;
+4. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
    controllo ha superato la propria validazione positiva e negativa.
 
-Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
-`T2-R03`, il primo passo successivo raccomandato e quindi solo `T6-R04`, senza
-iniziare contestualmente il runner.
+Ogni punto costituisce un'iterazione distinta. Dopo il completamento delle due
+lacune funzionali `T2-R03` e `T6-R04`, il primo passo successivo raccomandato e
+quindi solo la sostituzione di `T5-R01`, senza iniziare contestualmente il
+runner.
 
 ## Limiti e lavoro non verificato
 
-- E stato eseguito soltanto il test mirato `T2-R03`; gli altri controlli non sono
-  stati eseguiti.
-- E stata provata soltanto la compilazione delle fixture `T2-R03`.
+- Sono stati eseguiti soltanto i test mirati `T2-R03` e `T6-R04`; gli altri
+  controlli non sono stati eseguiti.
+- E stata provata soltanto la compilazione delle fixture `T2-R03` e `T6-R04`.
 - Non e stato verificato che le suite correnti producano report machine-readable
   validi.
 - Non sono stati congelati hash, versioni degli strumenti, exit code o schema
