@@ -48,6 +48,20 @@ Stampa JSON su stdout. Exit code: 0 `ready`, 20 `invalid-input`, 30
 Test: `.\evaluator\tests\Test-EvaluationInput.ps1`. Questo script non esegue build
 ne test.
 
+## Fase di build
+
+```powershell
+.\evaluator\Invoke-BuildPhase.ps1 -RunDirectory <runs\runId> -ToolsNodeModulesPath <node_modules-con-typescript> [-TimeoutSeconds 60]
+```
+
+Esegue nella copia di lavoro `tsc --noEmit` e `tsc --outDir <copia>\dist` con il
+compilatore canonico (junction `node_modules`), timeout complessivo che termina
+l'albero dei processi e ambiente ridotto. Scrive `raw/build.stdout.txt` e
+`raw/build.stderr.txt`. JSON su stdout; exit code 0 `passed`, 11 `build-failure`, 12
+`timeout`, 40 `evaluator-error`. Non esegue test e non rimuove la copia di lavoro:
+`Remove-EvaluationWorkspace` (in `BuildPhase.psm1`) elimina prima la junction.
+Test: `.\evaluator\tests\Test-BuildPhase.ps1 -ToolsNodeModulesPath <node_modules>`.
+
 ## Riepilogo ed exit code
 
 `schemas/evaluation-summary.schema.json` (v1) descrive il riepilogo della

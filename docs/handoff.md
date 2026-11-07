@@ -96,7 +96,23 @@ verifica del sorgente (1 fallito). Limite: non e coperto dai test che
 testata da sola. Non verificati: percorsi molto lunghi, caratteri speciali nei
 nomi dei file, concorrenza di piu run.
 
-Passi successivi pianificati: (4) runner: build/typecheck; (5) suite
+Passo 4 completato: fase di build (`evaluator/ProcessRunner.psm1`, `BuildPhase.psm1`,
+`Invoke-BuildPhase.ps1`, test in `evaluator/tests/Test-BuildPhase.ps1`, 29 asserzioni
+superate con TypeScript reale e compilatori simulati). Decisioni da confermare nel
+contratto (sezione "Fase di build"). Mutazioni di controllo rilevate: ambiente non
+ripulito, timeout per passo invece che complessivo, ogni codice non nullo come
+`failed`; albero dei processi non terminato verificato in modo mirato (il discendente
+resta vivo). NON discriminata dai test: l'eliminazione esplicita della junction in
+`Remove-EvaluationWorkspace`, perche in questo ambiente (PowerShell 5.1.26100)
+`Remove-Item -Recurse` non attraversa le junction (verificato con directory
+usa-e-getta); resta come precauzione. Incidente di processo: una mutazione senza
+terminazione dell'albero ha lasciato processi orfani che bloccavano la pulizia; ho
+chiuso solo quelli del mio test (catena dei PID) e rimosso la sola directory temporanea
+creata. Non verificati: output molto grandi (nessun limite di dimensione dei log),
+percorsi con caratteri speciali di cmd (`&`, `%`), emissioni di `tsc` fuori dalla copia
+di lavoro diverse da `--outDir`, versioni degli strumenti non ancora registrate.
+
+Passi successivi pianificati: (5) suite
 pubblica e riservata con timeout; (6) validazione dei report; (7) test di
 accettazione e isolamento; (8) riconciliazione documentale. Non avviare il runner
 senza nuova autorizzazione.

@@ -299,6 +299,28 @@ processo corrente per limiti di permesso. Il futuro evaluator deve usare un
 metodo leggibile senza privilegi elevati e registrare `unavailable` se un campo
 non puo essere acquisito; non deve inventare valori.
 
+## Fase di build (Passo 4, 7 novembre 2026)
+
+Decisioni da confermare:
+
+- Typecheck e build usano il compilatore delle dipendenze canoniche del valutatore
+  (`node_modules` collegato alla copia di lavoro con una junction), con i comandi
+  `tsc --noEmit` e `tsc --outDir <copia di lavoro>\dist`; gli `scripts` del
+  `package.json` della submission non vengono eseguiti.
+- I codici di uscita 1 e 2 di `tsc` indicano errori di compilazione della submission
+  (`build-failure`); qualunque altro codice non nullo, o un compilatore assente, e un
+  problema dello strumento (`evaluator-error`).
+- Il limite di 60 secondi e complessivo per i due passi; al superamento viene
+  terminato l'intero albero dei processi (`timeout`).
+- I processi partono con un ambiente ridotto a un elenco di variabili ammesse
+  (`PATH`, `PATHEXT`, `SystemRoot`, `windir`, `ComSpec`, `SystemDrive`, `TEMP`, `TMP`, `OS`,
+  `NUMBER_OF_PROCESSORS`, `PROCESSOR_ARCHITECTURE`).
+- `raw/build.stdout.txt` e `raw/build.stderr.txt` contengono i passi in sequenza, ciascuno
+  preceduto da una riga `=== nome ===` aggiunta dal valutatore.
+- Limite noto: `--outDir` e forzato dentro la copia di lavoro, ma altri percorsi di
+  emissione configurabili in `tsconfig.json` (per esempio `declarationDir`,
+  `tsBuildInfoFile`) non sono confinati. Non e prevista difesa da codice ostile.
+
 ## Timeout iniziali
 
 I limiti iniziali, da confermare tramite prove pilota, sono:
