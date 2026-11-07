@@ -47,7 +47,7 @@ oggi disponibile per l'intera matrice.
 | T4-R03 | La sospensione successiva non altera un ordine storico confermato | `reserved/t4-r03.test.ts` | assenti | Presente da validare; creare positivo e violazione che lega lo storico allo stato corrente |
 | T5-R01 | La logica applicativa dipende dai contratti, senza persistenza concreta interna | `reserved/t5-r01.test.ts` | `fixtures/controls/T5/R01/{compliant,violating}` con varianti interne | Validato con AST TypeScript 7: due forme conformi passano; la violante fallisce soltanto con `direct-persistence-field:ordersById` |
 | T5-R02 | Factory e logica usano realmente tutti i repository sostitutivi ricevuti | `reserved/t5-r02.test.ts` | `fixtures/controls/T5/R02/{compliant,violating}` | Validato: la conforme usa e aggiorna i tre doppi; la violante conferma internamente ma lascia scorta e ordini sostitutivi invariati e i tre flag di uso falsi |
-| T5-R03 | Errori e ordinamenti restano invariati dopo il refactoring | test `T5-R03` in `reserved/t5-r02-r03.test.ts` | nessuna fixture esclusiva | Parziale: controllo presente ma non indipendente nelle evidenze e privo di coppia di fixture dedicata |
+| T5-R03 | Errori e ordinamenti restano invariati dopo il refactoring | `reserved/t5-r03.test.ts` | `fixtures/controls/T5/R03/{compliant,violating}` | Validato: la conforme preserva errore, atomicita e ordinamenti; la violante preserva errore e atomicita ma fallisce soltanto i due ordinamenti deterministici |
 | T6-R01 | Ordine multiprodotto produce quantita e stato globali corretti | `reserved/t6-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione di allocazione multiprodotto |
 | T6-R02 | Due ordini consumano la scorta secondo l'ordine delle conferme | `reserved/t6-r02.test.ts` | assenti | Presente da validare; creare positivo e violazione della priorita delle chiamate |
 | T6-R03 | Un carico non valido non altera scorta o avanzamento dell'ordine | `reserved/t6-r03.test.ts` | assenti | Presente da validare; estendere la coppia di fixture al caso discriminante scelto |
@@ -58,13 +58,13 @@ oggi disponibile per l'intera matrice.
 - Identificatori canonici previsti: **19**.
 - Identificatori con un test nominale osservabile: **19**.
 - Controlli mancanti: **0**.
-- Controlli presenti ma non congelabili nello stato corrente: **1** (`T5-R03`).
-- Controlli dotati di fixture canoniche `compliant` e `violating`: **4**
-  (`T2-R03`, `T5-R01`, `T5-R02`, `T6-R04`). `T5-R01` include due varianti
+- Controlli presenti ma non congelabili nello stato corrente: **0**.
+- Controlli dotati di fixture canoniche `compliant` e `violating`: **5**
+  (`T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`). `T5-R01` include due varianti
   conformi sintatticamente diverse. Restano inoltre due gruppi legacy sotto
   `fixtures/t5/` e `fixtures/t5-r02-r03/`.
 - Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
-  **4 dimostrati** (`T2-R03`, `T5-R01`, `T5-R02`, `T6-R04`).
+  **5 dimostrati** (`T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`).
 
 ## Inventario pubblico osservato
 
@@ -108,23 +108,23 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 L'audit non congela ancora le suite. La matrice puo essere completata con
 iterazioni indipendenti nel seguente ordine:
 
-1. separare file e fixture di `T5-R03`, quindi pensionare il controllo combinato
-   legacy `t5-r02-r03.test.ts`;
+1. pensionare il controllo combinato legacy `t5-r02-r03.test.ts`, ora sostituito
+   dai controlli indipendenti `T5-R02` e `T5-R03`;
 2. creare progressivamente le coppie di fixture degli altri controlli;
 3. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
    controllo ha superato la propria validazione positiva e negativa.
 
 Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
 `T2-R03`, `T6-R04`, della sostituzione AST di `T5-R01` e della separazione di
-`T5-R02`, il primo passo successivo raccomandato e quindi solo `T5-R03`, senza
-iniziare contestualmente il runner.
+`T5-R02` e `T5-R03`, il primo passo successivo raccomandato e quindi il solo
+pensionamento dei file combinati legacy, senza iniziare contestualmente il runner.
 
 ## Limiti e lavoro non verificato
 
-- Sono stati eseguiti soltanto i test mirati `T2-R03`, `T5-R01`, `T5-R02` e
-  `T6-R04`; gli altri controlli non sono stati eseguiti.
+- Sono stati eseguiti soltanto i test mirati `T2-R03`, `T5-R01`, `T5-R02`,
+  `T5-R03` e `T6-R04`; gli altri controlli non sono stati eseguiti.
 - E stata provata soltanto la compilazione delle fixture `T2-R03`, `T5-R01`,
-  `T5-R02` e `T6-R04`.
+  `T5-R02`, `T5-R03` e `T6-R04`.
 - Non e stato verificato che le suite correnti producano report machine-readable
   validi.
 - Non sono stati congelati hash, versioni degli strumenti, exit code o schema
