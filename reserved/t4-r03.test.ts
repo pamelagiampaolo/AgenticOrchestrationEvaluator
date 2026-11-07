@@ -19,7 +19,7 @@ test("T4-R03", () => {
 
   inventory.suspendProduct("P-002");
 
-  expect(inventory.getOrder(order.orderId)).toEqual(confirmed);
-  expect(inventory.listOrders()).toContainEqual(confirmed);
+  expect.soft(inventory.getOrder(order.orderId)).toEqual(confirmed);
+  expect.soft(inventory.listOrders()).toContainEqual(confirmed);
   expect(inventory.getAvailableQuantity("P-002")).toBe(4);
 });
