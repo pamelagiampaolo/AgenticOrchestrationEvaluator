@@ -75,8 +75,16 @@ exit 2 per manifest assente e baseline senza tsconfig. Limiti: la baseline
 fallisce i test di task per costruzione, quindi il manifest non certifica nessuna
 soluzione; i nomi non sono stati confrontati con una soluzione corretta.
 
-Passi successivi pianificati: (2) schema JSON del riepilogo ed esiti con exit
-code; (3) runner: ingresso e copia immutabile; (4) build/typecheck; (5) suite
+Passo 2 completato: schema JSON del riepilogo (`schemas/evaluation-summary.schema.json`),
+tabella esiti/exit code, precedenza tra cause e validazione in
+`evaluator/EvaluationSummary.psm1`, test in `evaluator/tests/Test-EvaluationSummary.ps1`
+(54 asserzioni superate). Verificato anche che i test falliscono se la validazione
+e disattivata (34 falliti) o se la tabella degli exit code viene alterata (3).
+Limiti: lo schema non e ancora prodotto da un runner reale; il validatore copre
+solo il sottoinsieme di JSON Schema usato; i codici sono una proposta di questo
+passo, documentata nel contratto e da confermare.
+
+Passi successivi pianificati: (3) runner: ingresso e copia immutabile; (4) build/typecheck; (5) suite
 pubblica e riservata con timeout; (6) validazione dei report; (7) test di
 accettazione e isolamento; (8) riconciliazione documentale. Non avviare il runner
 senza nuova autorizzazione.

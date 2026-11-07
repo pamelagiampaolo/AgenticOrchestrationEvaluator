@@ -30,6 +30,16 @@ Senza `-ToolsNodeModulesPath` la verifica controlla solo file e hash e lo dichia
 Una modifica ai test riservati richiede una nuova `suiteVersion`, non un
 aggiornamento retroattivo.
 
+## Riepilogo ed exit code
+
+`schemas/evaluation-summary.schema.json` (v1) descrive il riepilogo della
+valutazione; `evaluator/EvaluationSummary.psm1` fornisce la tabella esito -> exit
+code (0, 10, 11, 12, 20, 30, 40), la precedenza tra cause e la validazione (schema
+piu coerenza tra campi). Il validatore e un sottoinsieme di JSON Schema scritto per
+Windows PowerShell 5.1, che non ha `Test-Json`; una parola chiave non supportata
+genera un errore. Test: `.\evaluator\tests\Test-EvaluationSummary.ps1` (exit 0 se
+tutti superati, 1 altrimenti).
+
 ## Manifest della baseline e delle suite pubbliche
 
 `manifests/public-suite.manifest.json` (versione `public-1`) congela 19 file della

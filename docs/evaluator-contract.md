@@ -187,9 +187,35 @@ essere aggregati.
 - `integrity-error`: input, suite o submission archiviata non corrispondono ai
   manifest attesi.
 
-Gli exit code esatti saranno congelati insieme all'implementazione e testati
-automaticamente. Nessun consumatore deve dedurre il risultato dal solo testo
-stampato su console.
+Gli exit code del runner sono definiti nel Passo 2 dell'implementazione (7
+novembre 2026) e verificati da `evaluator/tests/Test-EvaluationSummary.ps1`.
+Le decine separano le cause: 1x attribuibili alla submission, 2x input, 3x
+integrita, 4x errore del valutatore. Nessun consumatore deve dedurre il
+risultato dal solo testo stampato su console.
+
+| Esito | Exit code |
+| --- | ---: |
+| `passed` | 0 |
+| `test-failures` | 10 |
+| `build-failure` | 11 |
+| `timeout` | 12 |
+| `invalid-input` | 20 |
+| `integrity-error` | 30 |
+| `evaluator-error` | 40 |
+
+Quando piu cause coesistono prevale la prima di questo elenco: `invalid-input`,
+`integrity-error`, `evaluator-error`, `timeout`, `build-failure`,
+`test-failures`. Una causa che invalida la valutazione non viene quindi mai
+presentata come fallimento della soluzione. Test mancanti, inattesi o saltati
+rispetto al manifest non sono `test-failures` e vengono trattati come errore del
+valutatore o di integrita.
+
+Il riepilogo `evidence/evaluation-summary.json` e descritto da
+`schemas/evaluation-summary.schema.json`; le regole tra campi (per esempio
+`passed` richiede zero test falliti, saltati, mancanti e inattesi) sono in
+`evaluator/EvaluationSummary.psm1`. Gli script di verifica dei manifest
+(`Test-*Manifest.ps1`, exit code 0, 1, 2) sono strumenti separati e non seguono questa
+tabella.
 
 ## Visibilita dei risultati
 
@@ -304,5 +330,6 @@ Restano intenzionalmente da determinare mediante i passi successivi:
 
 - inventario definitivo e conteggi canonici delle suite;
 - versioni ufficiali dell'ambiente dopo le prove pilota;
-- schema JSON ed exit code numerici definitivi;
+- versione definitiva dello schema JSON dopo l'uso del runner reale (la v1 e
+  stata definita ma non ancora prodotta da un runner);
 - integrazione con l'orchestratore principale.
