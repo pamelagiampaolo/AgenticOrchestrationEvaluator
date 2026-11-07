@@ -17,7 +17,7 @@ test("T4-R02", () => {
   expect(() => inventory.confirmOrder(order.orderId)).toThrowError(
     expect.objectContaining({ code: "PRODUCT_SUSPENDED" }),
   );
-  expect(readObservableState(inventory)).toEqual(stateBeforeConfirmation);
+  expect.soft(readObservableState(inventory)).toEqual(stateBeforeConfirmation);
   expect(inventory.getOrder(order.orderId).status).toBe("draft");
 });
 
