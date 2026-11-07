@@ -1,0 +1,1 @@
+{"compilerOptions":{"module":"nodenext","strict":true,"target":"esnext","rootDir":"src"},"include":["src/**/*.ts"]}
