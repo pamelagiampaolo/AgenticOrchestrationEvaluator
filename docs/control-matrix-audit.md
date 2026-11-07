@@ -36,7 +36,7 @@ oggi disponibile per l'intera matrice.
 | T1-R01 | Soglia stretta: con soglia `5` e restituito solo `P-001` | `reserved/t1-r01.test.ts` | `fixtures/controls/T1/R01/{compliant,violating}` | Validato: la conforme supera l'intera suite T1; la violante usa `<=`, supera T1-R02/R03 e fallisce soltanto T1-R01 includendo `P-002`, la cui scorta e uguale alla soglia |
 | T1-R02 | Catalogo vuoto restituisce una collezione vuota | `reserved/t1-r02.test.ts` | `fixtures/controls/T1/R02/{compliant,violating}` | Validato: la conforme supera l'intera suite T1; la violante restituisce un prodotto fantasma solo per il catalogo vuoto, supera T1-R01/R03 e fallisce soltanto T1-R02 |
 | T1-R03 | La mutazione del risultato non altera lo stato interno | `reserved/t1-r03.test.ts` | `fixtures/controls/T1/R03/{compliant,violating}` | Validato con oracolo indipendente: la conforme supera l'intera suite T1; la violante espone gli oggetti interni, supera T1-R01/R02 e fallisce soltanto T1-R03 dopo la mutazione del nome restituito |
-| T2-R01 | Quantita negativa o decimale fallisce senza mutazioni | `reserved/t2-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione della validazione/atomicita |
+| T2-R01 | Quantita negativa o decimale fallisce senza mutazioni | `reserved/t2-r01.test.ts` | `fixtures/controls/T2/R01/{compliant,violating}` | Validato: la conforme supera l'intera suite T2; la violante aggiorna la scorta prima della validazione, supera T2-R02/R03 e fallisce soltanto T2-R01 dopo avere comunque emesso `INVALID_QUANTITY` |
 | T2-R02 | Un carico sull'istanza A non modifica l'istanza B | `reserved/t2-r02.test.ts` | assenti | Presente da validare; creare positivo e violazione con stato condiviso |
 | T2-R03 | Il carico modifica solo la scorta selezionata, non altre scorte o ordini | `reserved/t2-r03.test.ts` | `fixtures/controls/T2/R03/{compliant,violating}` | Validato: la fixture conforme passa; la violante fallisce per la sola modifica di `P-001` da `0` a `2` |
 | T3-R01 | Duplicati non adiacenti sono aggregati correttamente | `reserved/t3-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione che aggrega solo righe adiacenti |
@@ -59,13 +59,13 @@ oggi disponibile per l'intera matrice.
 - Identificatori con un test nominale osservabile: **19**.
 - Controlli mancanti: **0**.
 - Controlli presenti ma non congelabili nello stato corrente: **0**.
-- Controlli dotati di fixture canoniche `compliant` e `violating`: **8**
-  (`T1-R01`, `T1-R02`, `T1-R03`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`). `T5-R01` include
+- Controlli dotati di fixture canoniche `compliant` e `violating`: **9**
+  (`T1-R01`, `T1-R02`, `T1-R03`, `T2-R01`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`). `T5-R01` include
   due varianti conformi sintatticamente diverse. Resta un solo gruppo legacy sotto
   `fixtures/t5/`; il gruppo combinato `fixtures/t5-r02-r03/` e stato pensionato
   dopo la validazione indipendente di `T5-R02` e `T5-R03`.
 - Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
-  **8 dimostrati** (`T1-R01`, `T1-R02`, `T1-R03`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`).
+  **9 dimostrati** (`T1-R01`, `T1-R02`, `T1-R03`, `T2-R01`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`).
 
 ## Inventario pubblico osservato
 
@@ -116,16 +116,16 @@ iterazioni indipendenti nel seguente ordine:
 Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
 `T2-R03`, `T6-R04`, della sostituzione AST di `T5-R01` e della separazione di
 `T5-R02` e `T5-R03`, i file combinati legacy sono stati pensionati. Il primo
-controllo successivo validato e `T1-R03`; il primo passo raccomandato e ora creare
-e validare la coppia di fixture canoniche per `T2-R01`, senza iniziare
+controllo successivo validato e `T2-R01`; il primo passo raccomandato e ora creare
+e validare la coppia di fixture canoniche per `T2-R02`, senza iniziare
 contestualmente il runner.
 
 ## Limiti e lavoro non verificato
 
 - Sono stati eseguiti soltanto i test mirati `T1-R01`, `T1-R02`, `T1-R03`,
-  `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03` e `T6-R04`; gli altri controlli non sono stati eseguiti.
+  `T2-R01`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03` e `T6-R04`; gli altri controlli non sono stati eseguiti.
 - E stata provata soltanto la compilazione delle fixture `T1-R01`, `T1-R02`,
-  `T1-R03`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03` e `T6-R04`.
+  `T1-R03`, `T2-R01`, `T2-R03`, `T5-R01`, `T5-R02`, `T5-R03` e `T6-R04`.
 - Non e stato verificato che le suite correnti producano report machine-readable
   validi.
 - Non sono stati congelati hash, versioni degli strumenti, exit code o schema

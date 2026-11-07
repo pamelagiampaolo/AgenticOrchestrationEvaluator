@@ -19,7 +19,7 @@ test("T2-R01", () => {
     expect(() => inventory.receiveStock("P-002", quantity)).toThrowError(
       expect.objectContaining({ code: "INVALID_QUANTITY" }),
     );
-    expect(readObservableState(inventory)).toEqual(stateBefore);
+    expect.soft(readObservableState(inventory)).toEqual(stateBefore);
   }
 });
 
