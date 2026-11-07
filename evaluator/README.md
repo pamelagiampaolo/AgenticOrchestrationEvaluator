@@ -62,6 +62,23 @@ l'albero dei processi e ambiente ridotto. Scrive `raw/build.stdout.txt` e
 `Remove-EvaluationWorkspace` (in `BuildPhase.psm1`) elimina prima la junction.
 Test: `.\evaluator\tests\Test-BuildPhase.ps1 -ToolsNodeModulesPath <node_modules>`.
 
+## Fasi di test
+
+```powershell
+.\evaluator\Invoke-TestPhase.ps1 -Suite public   -RunDirectory <runs\runId> -ToolsNodeModulesPath <node_modules-con-vitest> -BaselinePath <BenchmarkTarget> [-TimeoutSeconds 120]
+.\evaluator\Invoke-TestPhase.ps1 -Suite reserved -RunDirectory <runs\runId> -ToolsNodeModulesPath <node_modules-con-vitest> [-TimeoutSeconds 120]
+```
+
+La suite pubblica sostituisce i test della submission con quelli canonici della
+baseline (hash verificati contro `public-suite.manifest.json`) ed esegue `common` e
+il task (T1-T4) oppure solo il task (T5, T6). La suite riservata copia in
+`work/reserved/` i soli file del task (hash verificati contro
+`reserved-suite.manifest.json`), li esegue accanto a `work/submission/` e li
+riverifica dopo l'esecuzione. Report JSON grezzi in `raw/`. Exit code: 0 `passed`, 10
+`test-failures`, 12 `timeout`, 30 `integrity-error`, 40 `evaluator-error`. Non valida
+ancora i report rispetto ai manifest. Test:
+`.\evaluator\tests\Test-TestPhases.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
+
 ## Riepilogo ed exit code
 
 `schemas/evaluation-summary.schema.json` (v1) descrive il riepilogo della

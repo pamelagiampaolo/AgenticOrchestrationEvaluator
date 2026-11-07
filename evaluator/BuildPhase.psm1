@@ -39,13 +39,6 @@ function Remove-EvaluationWorkspace {
     Remove-Item -LiteralPath $workDirectory -Recurse -Force
 }
 
-function Write-StepLog {
-    param([string]$Path, [string]$Header, [string]$StepFile)
-    $body = ''
-    if (Test-Path -LiteralPath $StepFile) { $body = [System.IO.File]::ReadAllText($StepFile) }
-    [System.IO.File]::AppendAllText($Path, "=== $Header ===`n$body`n", (New-Object System.Text.UTF8Encoding($false)))
-}
-
 <#
 .SYNOPSIS
 Esegue typecheck e build nella copia di lavoro di una run.
@@ -114,8 +107,8 @@ function Invoke-BuildPhase {
         catch {
             $status = 'error'; $diagnostics += "Impossibile avviare il passo $($definition.name)."; break
         }
-        Write-StepLog -Path $stdoutLog -Header $definition.name -StepFile $stepOut
-        Write-StepLog -Path $stderrLog -Header $definition.name -StepFile $stepErr
+        Add-StepLog -Path $stdoutLog -Header $definition.name -StepFile $stepOut
+        Add-StepLog -Path $stderrLog -Header $definition.name -StepFile $stepErr
         Remove-Item -LiteralPath $stepOut, $stepErr -Force -ErrorAction SilentlyContinue
         $steps.Add([pscustomobject][ordered]@{ name = $definition.name; exitCode = $result.exitCode; timedOut = $result.timedOut; durationMs = $result.durationMs })
         $lastExitCode = $result.exitCode; $lastDuration = $result.durationMs

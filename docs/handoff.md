@@ -112,10 +112,24 @@ creata. Non verificati: output molto grandi (nessun limite di dimensione dei log
 percorsi con caratteri speciali di cmd (`&`, `%`), emissioni di `tsc` fuori dalla copia
 di lavoro diverse da `--outDir`, versioni degli strumenti non ancora registrate.
 
-Passi successivi pianificati: (5) suite
-pubblica e riservata con timeout; (6) validazione dei report; (7) test di
-accettazione e isolamento; (8) riconciliazione documentale. Non avviare il runner
-senza nuova autorizzazione.
+Passo 5 completato: fasi di test pubblica e riservata (`evaluator/TestPhases.psm1`,
+`Invoke-TestPhase.ps1`, test in `evaluator/tests/Test-TestPhases.ps1`, 25 asserzioni
+superate con Vitest reale e Vitest simulato). `ProcessRunner` ora accetta variabili
+d'ambiente aggiuntive ed espone `Add-StepLog` (usato anche dalla fase di build).
+Decisioni da confermare nel contratto (sezione "Fasi di test"). Mutazioni di
+controllo rilevate: test pubblici non sostituiti (il test va in errore), hash
+canonici non verificati, nessuna riverifica dei file riservati (2 falliti), exit 1
+senza report come `failed`, scope comune sempre eseguito, tutti i file riservati
+copiati. Per la soluzione reale di T1 ho costruito nel test la baseline piu
+`findProductsBelowStock`: e codice di prova, non una soluzione sperimentale. Limiti:
+nessuna validazione dei report rispetto ai manifest (passo 6); `passed` di fase non
+certifica che i test attesi siano stati eseguiti; la cache di Vitest viene scritta
+dentro le dipendenze canoniche; nessun limite di dimensione dei log; reserved e
+submission condividono processo e identita (accettato dal threat model).
+
+Passi successivi pianificati: (6) validazione dei report rispetto ai manifest;
+(7) test di accettazione e isolamento end-to-end; (8) riconciliazione documentale.
+Non avviare il runner senza nuova autorizzazione.
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 

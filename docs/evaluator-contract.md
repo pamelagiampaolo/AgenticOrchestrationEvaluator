@@ -321,6 +321,38 @@ Decisioni da confermare:
   emissione configurabili in `tsconfig.json` (per esempio `declarationDir`,
   `tsBuildInfoFile`) non sono confinati. Non e prevista difesa da codice ostile.
 
+## Fasi di test (Passo 5, 7 novembre 2026)
+
+Decisioni da confermare:
+
+- Suite pubblica: prima dell'esecuzione `tests/public/` e `vitest.public*.ts` della
+  copia di lavoro vengono eliminati e sostituiti con i file canonici della baseline,
+  verificati contro l'hash del manifest pubblico. Un file canonico non coincidente e
+  un `integrity-error`.
+- Scope pubblici per task: per T1-T4 prima `common` (`vitest.public.config.ts`) e poi
+  il task; per T5 e T6 solo la configurazione del task, che include gia i file comuni
+  (per T6 solo i compatibili), cosi nessun test e contato due volte.
+- Suite riservata: in `work/reserved/` sono copiati solo i file del task e
+  `vitest.reserved-task.config.ts`, verificati contro il manifest riservato; la
+  submission e in `work/submission/`, affiancata, perche i test la importano da
+  `../submission/src/index.ts`. Dopo l'esecuzione i file copiati sono riverificati:
+  una differenza e un `integrity-error` che prevale su ogni altro esito.
+- Report grezzi, uno per scope, con il reporter JSON di Vitest:
+  `raw/public-common-report.json`, `raw/public-<Task>-report.json`,
+  `raw/reserved-report.json`; log in `raw/public.*.txt` e `raw/reserved.*.txt` con
+  righe `=== scope ===` aggiunte dal valutatore. Variante del layout elencato sopra
+  (che indica "almeno" i file citati): i report non vengono uniti.
+- Esito di fase: `passed` richiede exit 0 e un report valido con `success: true`;
+  exit 1 con report valido e `success: false` e `failed` (test falliti); qualunque
+  altra combinazione (per esempio exit 1 senza report) e `error` (errore del
+  valutatore). Un timeout termina l'albero dei processi e interrompe la sequenza.
+- Limite: 120 secondi per fase (complessivo sugli scope della fase).
+- Limite noto: la validazione dei report rispetto ai manifest (test mancanti,
+  inattesi, saltati, `todo`, duplicati) NON e ancora implementata: `passed` di fase
+  significa solo che Vitest e il suo report non riportano fallimenti.
+- Limite noto: Vitest scrive la propria cache in `node_modules/.vite` attraverso la
+  junction, cioe dentro le dipendenze canoniche.
+
 ## Timeout iniziali
 
 I limiti iniziali, da confermare tramite prove pilota, sono:

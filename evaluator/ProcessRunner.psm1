@@ -54,6 +54,9 @@ File di destinazione (creati o sovrascritti, anche se l'output e' vuoto).
 .PARAMETER TimeoutMilliseconds
 Superato il limite l'intero albero dei processi viene terminato.
 
+.PARAMETER AdditionalEnvironment
+Variabili da aggiungere all'ambiente ridotto (per esempio `RESERVED_TASK_ID`).
+
 .OUTPUTS
 Oggetto con `exitCode` (nullo se in timeout), `timedOut` e `durationMs`.
 
@@ -69,7 +72,8 @@ function Invoke-ControlledProcess {
         [Parameter(Mandatory)][string]$WorkingDirectory,
         [Parameter(Mandatory)][string]$StdoutPath,
         [Parameter(Mandatory)][string]$StderrPath,
-        [Parameter(Mandatory)][int]$TimeoutMilliseconds
+        [Parameter(Mandatory)][int]$TimeoutMilliseconds,
+        [hashtable]$AdditionalEnvironment = @{}
     )
 
     $commandLine = '"' + $CommandPath + '"'
@@ -87,6 +91,7 @@ function Invoke-ControlledProcess {
         $value = [System.Environment]::GetEnvironmentVariable($name)
         if ($null -ne $value) { $inherited[$name] = $value }
     }
+    foreach ($name in $AdditionalEnvironment.Keys) { $inherited[$name] = [string]$AdditionalEnvironment[$name] }
     $startInfo.EnvironmentVariables.Clear()
     foreach ($name in $inherited.Keys) { $startInfo.EnvironmentVariables[$name] = $inherited[$name] }
 
@@ -108,4 +113,24 @@ function Invoke-ControlledProcess {
     }
 }
 
-Export-ModuleMember -Function Stop-ProcessTree, Invoke-ControlledProcess
+<#
+.SYNOPSIS
+Aggiunge a un log l'output di un passo, preceduto da una riga `=== intestazione ===`.
+
+.DESCRIPTION
+L'intestazione e' aggiunta dal valutatore e non fa parte dell'output grezzo del passo.
+#>
+function Add-StepLog {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Header,
+        [Parameter(Mandatory)][string]$StepFile
+    )
+
+    $body = ''
+    if (Test-Path -LiteralPath $StepFile) { $body = [System.IO.File]::ReadAllText($StepFile) }
+    [System.IO.File]::AppendAllText($Path, "=== $Header ===`n$body`n", (New-Object System.Text.UTF8Encoding($false)))
+}
+
+Export-ModuleMember -Function Stop-ProcessTree, Invoke-ControlledProcess, Add-StepLog
