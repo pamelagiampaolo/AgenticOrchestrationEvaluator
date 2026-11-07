@@ -61,9 +61,9 @@ ancora del runner generale.
 - Controlli presenti ma non congelabili nello stato corrente: **0**.
 - Controlli dotati di fixture canoniche `compliant` e `violating`: **19**
   (`T1-R01`, `T1-R02`, `T1-R03`, `T2-R01`, `T2-R02`, `T2-R03`, `T3-R01`, `T3-R02`, `T3-R03`, `T4-R01`, `T4-R02`, `T4-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R01`, `T6-R02`, `T6-R03`, `T6-R04`). `T5-R01` include
-  due varianti conformi sintatticamente diverse. Resta un solo gruppo legacy sotto
-  `fixtures/t5/`; il gruppo combinato `fixtures/t5-r02-r03/` e stato pensionato
-  dopo la validazione indipendente di `T5-R02` e `T5-R03`.
+  due varianti conformi sintatticamente diverse. I gruppi legacy
+  `fixtures/t5-r02-r03/` e `fixtures/t5/` sono stati pensionati (quest'ultimo
+  dopo ispezione read-only e autorizzazione esplicita dell'utente, 7 novembre 2026).
 - Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
   **19 dimostrati** (`T1-R01`, `T1-R02`, `T1-R03`, `T2-R01`, `T2-R02`, `T2-R03`, `T3-R01`, `T3-R02`, `T3-R03`, `T4-R01`, `T4-R02`, `T4-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R01`, `T6-R02`, `T6-R03`, `T6-R04`).
 
@@ -117,9 +117,9 @@ Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
 `T2-R03`, `T6-R04`, della sostituzione AST di `T5-R01` e della separazione di
 `T5-R02` e `T5-R03`, i file combinati legacy sono stati pensionati. Il primo
 controllo successivo validato e `T6-R03`; tutti i 19 controlli dispongono ora di
-evidenza positiva e negativa. Il primo passo raccomandato e ispezionare e, previa
-autorizzazione esplicita, pensionare l'ultimo gruppo legacy `fixtures/t5/`, senza
-iniziare contestualmente il runner.
+evidenza positiva e negativa. Anche l'ultimo gruppo legacy `fixtures/t5/` e stato pensionato. Il passo
+successivo e la generazione e verifica dei manifest canonici, senza iniziare
+contestualmente il runner.
 
 ## Limiti e lavoro non verificato
 

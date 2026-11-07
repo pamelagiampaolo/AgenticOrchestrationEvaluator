@@ -41,27 +41,24 @@ osservate. Non certificano ancora un'esecuzione end-to-end del valutatore.
 - Il runner locale generale non e ancora implementato.
 - Report machine-readable, schema JSON, exit code, timeout e verifiche generali
   di integrita non sono ancora congelati o validati end-to-end.
-- Resta un gruppo di fixture legacy sotto `fixtures/t5/`.
+- `fixtures/t1-ipc-compliant` esiste su disco ma non e tracciato da Git; non ispezionato.
 - Prettier non risultava disponibile nell'ambiente usato per le verifiche.
 - Vitest/Vite emette un avviso non bloccante sulle configurazioni TypeScript con
   sintassi ESM caricate come CommonJS e sul futuro `configLoader: native`.
 
-## Prossimo passo autorizzato
+## Prossimo passo
 
-Il prossimo passo e esclusivamente un'ispezione read-only di `fixtures/t5/`:
+Il 7 novembre 2026 `fixtures/t5/` e stato ispezionato (nessun riferimento da
+test o configurazioni, tutti i file diversi dalle fixture canoniche, violazione
+legacy coperta da T5-R01 AST) e rimosso con `git rm -r` su autorizzazione
+dell'utente. Verifica eseguita in copia temporanea (Vitest di `BenchmarkTarget`):
+T5-R01 passa con entrambe le fixture conformi e fallisce con `direct-persistence`;
+T5-R02 e T5-R03 passano con le conformi e falliscono con le violanti.
 
-1. inventariare tutti i file del gruppo legacy;
-2. cercare riferimenti in configurazioni, test e documentazione;
-3. confrontarne la copertura con T5-R01, T5-R02 e T5-R03 canonici;
-4. stabilire se il gruppo e completamente sostituito;
-5. riportare gli esatti file candidati alla rimozione.
-
-L'ispezione era stata avviata ma interrotta dall'utente prima di produrre
-risultati; il comando era read-only e non ha modificato il repository.
-
-Qualsiasi eliminazione richiede una nuova autorizzazione esplicita dell'utente.
-Dopo l'eventuale pensionamento del gruppo legacy, il passo pianificato e la
-generazione e verifica dei manifest canonici, non l'avvio automatico del runner.
+Il passo pianificato e la generazione e verifica dei manifest canonici delle
+suite pubbliche e riservate. Non avviare il runner senza nuova autorizzazione.
+Nota: Vitest non e installato in questo repository; per le prove si e usato
+`node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 
 ## Verifiche richieste alla ripresa
 
