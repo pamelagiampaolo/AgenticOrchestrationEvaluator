@@ -378,6 +378,36 @@ Limite: la validazione e un'ulteriore verifica sulla stessa sorgente di dati; no
 protegge da una submission che alteri il report durante la propria esecuzione
 (stesso processo e stessa identita, come da threat model).
 
+## Orchestratore e riepilogo (Passo 7, 7 novembre 2026)
+
+`evaluator/Invoke-Evaluation.ps1` concatena ingresso, build, suite pubblica, suite riservata e
+validazione dei report e produce `evidence/evaluation-summary.json`. Decisioni da confermare:
+
+- Dopo una build riuscita le due suite girano sempre entrambe, anche se la prima ha test
+  falliti, per raccogliere piu evidenze; si fermano solo per violazioni di integrita. Build
+  fallita, in timeout o in errore: le fasi di test sono `not-run` e i conteggi nulli.
+- I manifest delle suite (hash dei file) sono verificati prima e dopo la run; una differenza e
+  `integrity-error` e, se rilevata prima, non viene eseguita alcuna fase. La verifica completa
+  degli identificatori con Vitest resta una verifica separata, fatta al congelamento.
+- Dopo la run si riverificano sorgente originale e archivio contro il manifest della submission.
+- Le fasi di test si risolvono con la validazione dei report: test falliti -> `failed`; anomalie
+  strutturali -> `error`; un timeout lascia i conteggi nulli.
+- Il riepilogo contiene solo conteggi e messaggi generici, mai identificatori dei test riservati;
+  i dettagli (che possono contenerli) sono in `evidence/report-validation.json`, per il
+  ricercatore.
+- Il riepilogo e validato con lo schema; se non e valido l'esito diventa `evaluator-error`.
+- `test-failures` richiede almeno una fase di test `failed` (non `failed > 0`: un file di test che
+  non si carica ha `failed = 0`); `integrity-error` richiede un controllo falso o un messaggio
+  diagnostico (l'incoerenza rilevata all'ingresso non ha ancora controlli).
+- Con `TaskId` non valido non esiste riepilogo (lo schema ammette solo T1..T6): exit 20 con una
+  diagnostica su stdout. Per gli altri input non validi il riepilogo e scritto solo se la
+  directory della run non esiste gia e `RunsRoot` non e dentro la submission.
+- La copia di lavoro e rimossa a evidenze scritte (salvo `-KeepWorkspace`); un errore di rimozione
+  e segnalato su stderr e non cambia l'esito.
+- L'ambiente registra Windows, architettura, Node, npm, versioni di TypeScript e Vitest (dal
+  `package.json` delle dipendenze canoniche), hash SHA-256 del lock file della baseline e commit
+  dell'evaluator (con `-dirty` se i file rilevanti sono modificati); `unavailable` se non acquisibile.
+
 ## Timeout iniziali
 
 I limiti iniziali, da confermare tramite prove pilota, sono:

@@ -170,10 +170,14 @@ $t = & $base; $t.diagnostics = @('nota'); Assert-Rejected 'passed con diagnostic
 $t = & $base; $t.reservedTests.executed = 5; Assert-Rejected 'executed diverso da passed + failed' $t 'executed diverso'
 $t = & $base; $t.publicTests = $null; Assert-Rejected 'conteggi nulli con fase passed' $t 'nullo'
 $t = New-SummaryTable -Outcome 'build-failure'; $t.publicTests = New-Counts -Expected 31 -Passed 31; Assert-Rejected 'conteggi presenti con fase not-run' $t 'not-run'
-$t = New-SummaryTable -Outcome 'test-failures'; $t.reservedTests = New-Counts -Expected 3 -Passed 3; $t.phases.reserved = New-Phase 'passed'; Assert-Rejected 'test-failures senza test falliti' $t 'almeno un test fallito'
+$t = New-SummaryTable -Outcome 'test-failures'; $t.reservedTests = New-Counts -Expected 3 -Passed 3; $t.phases.reserved = New-Phase 'passed'; Assert-Rejected 'test-failures senza fasi di test failed' $t 'almeno una fase di test failed'
+$t = New-SummaryTable -Outcome 'test-failures'; $t.reservedTests = New-Counts -Expected 3 -Passed 0 -Missing 3; $problems = @(Get-Problems -Table $t)
+Assert-That 'accetta test-failures da file che non si carica (fase failed, failed = 0, mancanti = 3)' ($problems.Count -eq 0) "(problemi: $($problems -join ' ; '))"
 $t = New-SummaryTable -Outcome 'build-failure'; $t.phases.build = New-Phase 'passed'; Assert-Rejected 'build-failure con build passed' $t 'build failed'
 $t = New-SummaryTable -Outcome 'timeout'; $t.phases.public = New-Phase 'failed'; Assert-Rejected 'timeout senza fase in timeout' $t 'fase in timeout'
-$t = New-SummaryTable -Outcome 'integrity-error'; $t.integrity.archivedSubmissionUnchanged = $true; Assert-Rejected 'integrity-error senza controllo falso' $t 'integrita false'
+$t = New-SummaryTable -Outcome 'integrity-error'; $t.integrity.archivedSubmissionUnchanged = $true; $t.diagnostics = @(); Assert-Rejected 'integrity-error senza controllo falso ne diagnostica' $t 'integrita false o un messaggio'
+$t = New-SummaryTable -Outcome 'integrity-error'; $t.integrity.archivedSubmissionUnchanged = $null; $problems = @(Get-Problems -Table $t)
+Assert-That 'accetta integrity-error all''ingresso (controlli nulli, solo diagnostica)' ($problems.Count -eq 0) "(problemi: $($problems -join ' ; '))"
 $t = New-SummaryTable -Outcome 'evaluator-error'; $t.diagnostics = @(); Assert-Rejected 'evaluator-error senza diagnostica' $t 'messaggio diagnostico'
 $t = New-SummaryTable -Outcome 'invalid-input'; $t.diagnostics = @(); Assert-Rejected 'invalid-input senza diagnostica' $t 'messaggio diagnostico'
 

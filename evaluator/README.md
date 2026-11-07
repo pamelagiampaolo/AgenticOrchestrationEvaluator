@@ -92,6 +92,21 @@ strutturali: mancanti non spiegati, saltati, non previsti, duplicati, report ass
 incoerente). Le anomalie strutturali prevalgono sui test falliti. Test:
 `.\evaluator\tests\Test-ReportValidation.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
 
+## Valutazione completa
+
+```powershell
+.\evaluator\Invoke-Evaluation.ps1 -SubmissionPath <copia-BenchmarkTarget> -TaskId T1 `
+    -BaselinePath <BenchmarkTarget> -ToolsNodeModulesPath <node_modules-con-typescript-e-vitest> `
+    [-RunsRoot <dir>] [-RunId <id>] [-BuildTimeoutSeconds 60] [-PublicTimeoutSeconds 120] [-ReservedTimeoutSeconds 120] [-KeepWorkspace]
+```
+
+Esegue ingresso, build, suite pubblica, suite riservata e validazione dei report; scrive in
+`runs/<runId>/evidence/` `evaluation-summary.json` (conteggi e messaggi generici, validato con lo
+schema) e `report-validation.json` (dettagli, anche riservati: solo per il ricercatore); stampa
+il riepilogo su stdout. Exit code: 0 `passed`, 10 `test-failures`, 11 `build-failure`, 12
+`timeout`, 20 `invalid-input`, 30 `integrity-error`, 40 `evaluator-error`. La copia di lavoro e
+rimossa a fine run. Test: `.\evaluator\tests\Test-Evaluation.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
+
 ## Riepilogo ed exit code
 
 `schemas/evaluation-summary.schema.json` (v1) descrive il riepilogo della

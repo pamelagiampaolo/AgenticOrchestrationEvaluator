@@ -139,14 +139,28 @@ errore di sintassi (file che non si carica), funzione mancante, T6 con 6 esclusi
 Limiti: non protegge da una submission che alteri il report durante la propria esecuzione;
 non ancora assemblato il riepilogo finale.
 
-Lavoro rimanente, NON ancora pianificato nei passi precedenti ma necessario: manca
-l'orchestratore `Invoke-Evaluation.ps1` previsto dal contratto, che concateni ingresso,
-build, fasi di test e validazione, raccolga l'ambiente (versioni, hash del lock file),
-scriva `evidence/evaluation-summary.json` (validandolo con lo schema), applichi la
-precedenza degli esiti, rimuova la copia di lavoro e restituisca l'exit code finale.
-Passi successivi proposti: (7) orchestratore e riepilogo finale; (8) test di accettazione
-e isolamento end-to-end; (9) riconciliazione documentale. Non avviare il runner senza
-nuova autorizzazione.
+Passo 7 completato: orchestratore (`evaluator/Evaluation.psm1`, `Invoke-Evaluation.ps1`, test in
+`evaluator/tests/Test-Evaluation.ps1`, 34 asserzioni superate). Corretta una regola del passo 2:
+`test-failures` richiede una fase di test `failed` (non `failed > 0`) e `integrity-error`
+accetta anche un messaggio diagnostico (test del riepilogo: 56 asserzioni). Decisioni da
+confermare nel contratto (sezione "Orchestratore e riepilogo"). Verificato end-to-end con Vitest
+e TypeScript reali: soluzione T1 conforme `passed` (31/31 pubblici, 3/3 riservati, riepilogo
+valido, copia di lavoro rimossa, nessun identificatore riservato nel riepilogo), soluzione con
+`<=` `test-failures` (pubblica 1 fallito, riservata 1 su 3), funzione mancante `test-failures`,
+sorgente non compilabile `build-failure`; input non valido, TaskId non valido, RunsRoot dentro la
+submission, RunId esistente o con path traversal (nessun file sovrascritto o scritto fuori),
+baseline alterata `integrity-error` prima di eseguire; con Vitest simulato timeout, assenza di
+report, alterazione dei file riservati, del sorgente originale e dell'archivio durante la run.
+Mutazioni di controllo rilevate: 6 su 6 significative (una equivalente per doppia difesa).
+Limiti: non e coperto un riepilogo reso non valido da un bug (conversione in `evaluator-error`);
+le anomalie strutturali dei report sono coperte dai test della validazione, non dall'orchestratore;
+la verifica dei manifest nella run controlla gli hash dei file ma non rielenca i test con Vitest;
+nessuna esecuzione parallela provata; il lock file registrato e quello della baseline.
+
+Passi successivi proposti: (8) test di accettazione e isolamento end-to-end piu ampi (altri task,
+tentativi di modificare test e dipendenze, interruzione della run); (9) riconciliazione
+documentale e proposta di commit finale. Non eseguire valutazioni ufficiali senza nuova
+autorizzazione e senza le prove pilota previste dal contratto.
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 

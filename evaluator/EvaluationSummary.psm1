@@ -210,8 +210,6 @@ function Test-EvaluationSummaryConsistency {
     }
 
     $phaseStatuses = @($Summary.phases.build.status, $Summary.phases.public.status, $Summary.phases.reserved.status)
-    $failedTests = 0
-    foreach ($suite in 'public', 'reserved') { $counts = $Summary."${suite}Tests"; if ($null -ne $counts) { $failedTests += $counts.failed } }
 
     switch ($outcome) {
         'passed' {
@@ -227,12 +225,15 @@ function Test-EvaluationSummaryConsistency {
             }
             if ($Summary.diagnostics.Count -ne 0) { $errors.Add('passed non ammette diagnostics') }
         }
-        'test-failures' { if ($failedTests -eq 0) { $errors.Add('test-failures richiede almeno un test fallito') } }
+        # Un file di test che non si carica ha failed = 0 ma la fase e' 'failed': il criterio
+        # affidabile e' lo stato delle fasi di test, non il solo conteggio dei test falliti.
+        'test-failures' { if ('failed' -notin @($Summary.phases.public.status, $Summary.phases.reserved.status)) { $errors.Add('test-failures richiede almeno una fase di test failed') } }
         'build-failure' { if ($Summary.phases.build.status -ne 'failed') { $errors.Add('build-failure richiede la fase build failed') } }
         'timeout' { if ('timeout' -notin $phaseStatuses) { $errors.Add('timeout richiede una fase in timeout') } }
         'integrity-error' {
             $flags = @($Summary.integrity.originalInputUnchanged, $Summary.integrity.archivedSubmissionUnchanged, $Summary.integrity.suiteManifestsVerified)
-            if ($false -notin $flags) { $errors.Add('integrity-error richiede almeno un controllo di integrita false') }
+            # Un'incoerenza rilevata all'ingresso (prima che esistano i controlli) e' segnalata dalla sola diagnostica.
+            if ($false -notin $flags -and $Summary.diagnostics.Count -eq 0) { $errors.Add('integrity-error richiede almeno un controllo di integrita false o un messaggio diagnostico') }
         }
         { $_ -in 'invalid-input', 'evaluator-error' } { if ($Summary.diagnostics.Count -eq 0) { $errors.Add("$outcome richiede almeno un messaggio diagnostico") } }
     }
