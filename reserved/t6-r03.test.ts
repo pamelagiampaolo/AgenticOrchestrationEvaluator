@@ -24,10 +24,10 @@ test("T6-R03", () => {
   expect(() => inventory.receiveStock("P-001", -1)).toThrowError(
     expect.objectContaining({ code: "INVALID_QUANTITY" }),
   );
-  expect(inventory.getAvailableQuantity("P-001")).toBe(
+  expect.soft(inventory.getAvailableQuantity("P-001")).toBe(
     stockBeforeInvalidLoad,
   );
-  expect(inventory.getOrder(order.orderId)).toEqual(orderBeforeInvalidLoad);
+  expect.soft(inventory.getOrder(order.orderId)).toEqual(orderBeforeInvalidLoad);
   expect(orderBeforeInvalidLoad).toEqual({
     orderId: "O-001",
     status: "partially-fulfilled",
