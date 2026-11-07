@@ -9,8 +9,9 @@
 - Fonti: `docs/evaluator-contract.md`, `docs/evaluation-threat-model.md`,
   `reserved/`, `fixtures/` e le suite pubbliche presenti in
   `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
-- Natura dell'audit: ispezione statica. I controlli e le fixture non sono stati
-  eseguiti in questo passo; `presente` non significa `validato`.
+- Natura dell'audit: ispezione statica, aggiornata con le evidenze runtime delle
+  iterazioni completate. `Presente` non significa `validato` in assenza di una
+  prova positiva e negativa registrata.
 
 ## Criteri di classificazione
 
@@ -37,7 +38,7 @@ oggi disponibile per l'intera matrice.
 | T1-R03 | La mutazione del risultato non altera lo stato interno | `reserved/t1-r03.test.ts` | assenti | Presente da validare; creare positivo e implementazione che espone riferimenti |
 | T2-R01 | Quantita negativa o decimale fallisce senza mutazioni | `reserved/t2-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione della validazione/atomicita |
 | T2-R02 | Un carico sull'istanza A non modifica l'istanza B | `reserved/t2-r02.test.ts` | assenti | Presente da validare; creare positivo e violazione con stato condiviso |
-| T2-R03 | Il carico modifica solo la scorta selezionata, non altre scorte o ordini | assente | assenti | Mancante; implementare un controllo reale e indipendente |
+| T2-R03 | Il carico modifica solo la scorta selezionata, non altre scorte o ordini | `reserved/t2-r03.test.ts` | `fixtures/controls/T2/R03/{compliant,violating}` | Validato: la fixture conforme passa; la violante fallisce per la sola modifica di `P-001` da `0` a `2` |
 | T3-R01 | Duplicati non adiacenti sono aggregati correttamente | `reserved/t3-r01.test.ts` | assenti | Presente da validare; creare positivo e violazione che aggrega solo righe adiacenti |
 | T3-R02 | Insufficienza tardiva lascia tutte le scorte e l'ordine invariati | `reserved/t3-r02.test.ts` | assenti | Presente da validare; creare positivo e violazione con mutazione parziale |
 | T3-R03 | Tre righe duplicate al limite esatto confermano e portano la scorta a zero | `reserved/t3-r03.test.ts` | assenti | Presente da validare; creare positivo e violazione dell'aggregazione multipla |
@@ -55,15 +56,15 @@ oggi disponibile per l'intera matrice.
 ### Conteggi osservati
 
 - Identificatori canonici previsti: **19**.
-- Identificatori con un test nominale osservabile: **17**.
-- Controlli mancanti: **2** (`T2-R03`, `T6-R04`).
+- Identificatori con un test nominale osservabile: **18**.
+- Controlli mancanti: **1** (`T6-R04`).
 - Controlli presenti ma non congelabili nello stato corrente: **3** (`T5-R01`,
   `T5-R02`, `T5-R03`).
-- Controlli dotati di almeno una coppia di directory chiamate `compliant` e
-  `violating`: **2**, ma solo in layout pre-canonico e senza validazione
-  indipendente completata (`T5-R01` e il gruppo accoppiato `T5-R02/R03`).
-- Controlli che soddisfano gia l'intero requisito di validazione positiva e
-  negativa: **0 dimostrati**.
+- Controlli dotati di una coppia di directory chiamate `compliant` e
+  `violating`: **3 gruppi**; `T2-R03` usa il layout canonico, mentre `T5-R01` e
+  il gruppo accoppiato `T5-R02/R03` usano ancora layout pre-canonici.
+- Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
+  **1 dimostrato** (`T2-R03`).
 
 ## Inventario pubblico osservato
 
@@ -110,22 +111,23 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 L'audit non congela ancora le suite. La matrice puo essere completata con
 iterazioni indipendenti nel seguente ordine:
 
-1. implementare e validare `T2-R03`, prima lacuna funzionale circoscritta;
-2. implementare e validare `T6-R04`;
-3. sostituire `T5-R01` con un controllo AST TypeScript e almeno due forme
+1. implementare e validare `T6-R04`;
+2. sostituire `T5-R01` con un controllo AST TypeScript e almeno due forme
    sintattiche equivalenti conformi;
-4. separare file, output e fixture di `T5-R02` e `T5-R03`;
-5. creare progressivamente le coppie di fixture degli altri controlli;
-6. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
+3. separare file, output e fixture di `T5-R02` e `T5-R03`;
+4. creare progressivamente le coppie di fixture degli altri controlli;
+5. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
    controllo ha superato la propria validazione positiva e negativa.
 
-Ogni punto costituisce un'iterazione distinta. Il primo passo successivo
-raccomandato e quindi solo `T2-R03`, senza iniziare contestualmente il runner.
+Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
+`T2-R03`, il primo passo successivo raccomandato e quindi solo `T6-R04`, senza
+iniziare contestualmente il runner.
 
 ## Limiti e lavoro non verificato
 
-- Nessun test e stato eseguito in questo passo.
-- Non e stata provata la compilazione delle fixture esistenti.
+- E stato eseguito soltanto il test mirato `T2-R03`; gli altri controlli non sono
+  stati eseguiti.
+- E stata provata soltanto la compilazione delle fixture `T2-R03`.
 - Non e stato verificato che le suite correnti producano report machine-readable
   validi.
 - Non sono stati congelati hash, versioni degli strumenti, exit code o schema
