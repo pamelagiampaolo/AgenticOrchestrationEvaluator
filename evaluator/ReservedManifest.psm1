@@ -1,4 +1,5 @@
 Set-StrictMode -Version Latest
+Import-Module (Join-Path $PSScriptRoot 'ManifestCommon.psm1') -Force
 
 <#
 .SYNOPSIS
@@ -8,48 +9,15 @@ Funzioni per generare e verificare il manifest canonico della suite riservata.
 Il manifest congela, per la suite riservata, l'insieme dei file sotto
 `reserved/` (con SHA-256) e gli identificatori dei test attesi per ciascun task.
 Gli identificatori sono ricavati da `vitest list --json`, non da analisi testuale
-del sorgente, cosi' da riflettere cio' che Vitest eseguirebbe davvero.
+del sorgente, cosi' da riflettere cio' che Vitest eseguirebbe davvero. I test
+riservati non sono parametrici, quindi l'elenco statico e' sufficiente.
 #>
 
 $script:TaskIds = @('T1', 'T2', 'T3', 'T4', 'T5', 'T6')
 
 <#
 .SYNOPSIS
-Calcola lo SHA-256 di un file normalizzando CRLF in LF.
-
-.DESCRIPTION
-La normalizzazione rende l'hash indipendente da `core.autocrlf`. Il contenuto
-resta altrimenti invariato byte per byte.
-
-.OUTPUTS
-Stringa esadecimale minuscola di 64 caratteri.
-#>
-function Get-NormalizedFileSha256 {
-    [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Path)
-
-    $bytes = [System.IO.File]::ReadAllBytes($Path)
-    $normalized = New-Object System.Collections.Generic.List[byte]
-    for ($index = 0; $index -lt $bytes.Length; $index++) {
-        $isCrLf = $bytes[$index] -eq 13 -and ($index + 1) -lt $bytes.Length -and $bytes[$index + 1] -eq 10
-        if (-not $isCrLf) { $normalized.Add($bytes[$index]) }
-    }
-    $sha256 = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        $hash = $sha256.ComputeHash($normalized.ToArray())
-    }
-    finally {
-        $sha256.Dispose()
-    }
-    return ([System.BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant()
-}
-
-<#
-.SYNOPSIS
-Elenca i file di `reserved/` con percorso relativo (separatore `/`) e hash.
-
-.OUTPUTS
-Oggetti con `path` e `sha256`, ordinati per percorso (ordinamento ordinale).
+Elenca i file di `reserved/` con percorso relativo e hash.
 #>
 function Get-ReservedFileEntries {
     [CmdletBinding()]
@@ -57,26 +25,14 @@ function Get-ReservedFileEntries {
 
     $reservedDirectory = Join-Path $RepositoryRoot 'reserved'
     if (-not (Test-Path -LiteralPath $reservedDirectory -PathType Container)) {
-        throw "Directory riservata non trovata: reserved/"
+        throw 'Directory riservata non trovata: reserved/'
     }
-    $rootPrefix = (Resolve-Path -LiteralPath $RepositoryRoot).Path.TrimEnd('\') + '\'
-    $entries = foreach ($file in Get-ChildItem -LiteralPath $reservedDirectory -File -Recurse) {
-        [pscustomobject][ordered]@{
-            path   = $file.FullName.Substring($rootPrefix.Length).Replace('\', '/')
-            sha256 = Get-NormalizedFileSha256 -Path $file.FullName
-        }
-    }
-    return @($entries | Sort-Object -Property @{ Expression = { $_.path }; Ascending = $true } -Culture 'iv' -CaseSensitive)
+    return Get-FileEntries -Root $RepositoryRoot -Files @(Get-ChildItem -LiteralPath $reservedDirectory -File -Recurse)
 }
 
 <#
 .SYNOPSIS
 Esegue `vitest list --json` su una copia temporanea di `reserved/`.
-
-.PARAMETER ToolsNodeModulesPath
-Directory `node_modules` che contiene Vitest. Viene collegata tramite junction
-alla copia temporanea, senza modificare ne' il repository ne' la directory
-degli strumenti.
 
 .PARAMETER ConfigFile
 Nome della configurazione sotto `reserved/` da usare.
@@ -100,47 +56,17 @@ function Get-ListedReservedTests {
         [string]$TaskId
     )
 
-    $vitestCommand = Join-Path $ToolsNodeModulesPath '.bin\vitest.cmd'
-    if (-not (Test-Path -LiteralPath $vitestCommand)) {
-        throw "Vitest non trovato nel percorso strumenti indicato."
-    }
-
-    $workspace = Join-Path ([System.IO.Path]::GetTempPath()) ("reserved-manifest-" + [guid]::NewGuid().ToString('N'))
-    $junction = Join-Path $workspace 'node_modules'
-    $previousTaskId = $env:RESERVED_TASK_ID
-    New-Item -ItemType Directory -Path $workspace | Out-Null
+    $workspace = New-ToolsWorkspace -ToolsNodeModulesPath $ToolsNodeModulesPath
     try {
         Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'reserved') -Destination (Join-Path $workspace 'reserved') -Recurse
-        New-Item -ItemType Junction -Path $junction -Target (Resolve-Path -LiteralPath $ToolsNodeModulesPath).Path | Out-Null
 
-        if ($TaskId) { $env:RESERVED_TASK_ID = $TaskId } else { Remove-Item Env:\RESERVED_TASK_ID -ErrorAction SilentlyContinue }
-        Push-Location $workspace
-        try {
-            # In Windows PowerShell 5.1 l'output su stderr di un eseguibile nativo diventa
-            # un errore terminante con ErrorActionPreference=Stop. L'avviso di Vite sulle
-            # config ESM e' non bloccante: l'esito e' stabilito da codice di uscita e
-            # validita' del JSON su stdout.
-            $previousPreference = $ErrorActionPreference
-            $previousWarningFlag = $env:VITE_CONFIG_NATIVE_IGNORE_WARNING
-            $ErrorActionPreference = 'Continue'
-            $env:VITE_CONFIG_NATIVE_IGNORE_WARNING = 'true'
-            try {
-                $output = & $vitestCommand list --json --config "reserved/$ConfigFile" 2>$null
-                $exitCode = $LASTEXITCODE
-            }
-            finally {
-                $ErrorActionPreference = $previousPreference
-                $env:VITE_CONFIG_NATIVE_IGNORE_WARNING = $previousWarningFlag
-                if ($null -eq $previousWarningFlag) { Remove-Item Env:\VITE_CONFIG_NATIVE_IGNORE_WARNING -ErrorAction SilentlyContinue }
-            }
-        }
-        finally {
-            Pop-Location
-        }
-        if ($exitCode -ne 0) { throw "vitest list ha restituito il codice $exitCode per $ConfigFile." }
+        $environment = @{ RESERVED_TASK_ID = $TaskId }
+        $result = Invoke-Vitest -Workspace $workspace -EnvironmentVariables $environment `
+            -Arguments @('list', '--json', '--config', "reserved/$ConfigFile")
+        if ($result.exitCode -ne 0) { throw "vitest list ha restituito il codice $($result.exitCode) per $ConfigFile." }
 
         try {
-            $listed = ($output -join "`n") | ConvertFrom-Json
+            $listed = ($result.stdout -join "`n") | ConvertFrom-Json
         }
         catch {
             throw "Output di vitest list non e' JSON valido per $ConfigFile."
@@ -156,12 +82,7 @@ function Get-ListedReservedTests {
         return @($tests | Sort-Object -Property @{ Expression = { $_.file }; Ascending = $true }, @{ Expression = { $_.name }; Ascending = $true } -Culture 'iv' -CaseSensitive)
     }
     finally {
-        $env:RESERVED_TASK_ID = $previousTaskId
-        if ($null -eq $previousTaskId) { Remove-Item Env:\RESERVED_TASK_ID -ErrorAction SilentlyContinue }
-        # La junction va rimossa da sola: una rimozione ricorsiva potrebbe entrare nella
-        # directory degli strumenti collegata.
-        if (Test-Path -LiteralPath $junction) { [System.IO.Directory]::Delete($junction) }
-        Remove-Item -LiteralPath $workspace -Recurse -Force
+        Remove-ToolsWorkspace -Workspace $workspace
     }
 }
 
@@ -234,18 +155,8 @@ function Compare-ReservedManifest {
     if ($manifest.schemaVersion -ne 1) { throw "schemaVersion del manifest non supportata: $($manifest.schemaVersion)" }
 
     $mismatches = New-Object System.Collections.Generic.List[string]
-
-    $expectedFiles = @{}
-    foreach ($entry in $manifest.files) { $expectedFiles[$entry.path] = $entry.sha256 }
-    $actualFiles = @{}
-    foreach ($entry in Get-ReservedFileEntries -RepositoryRoot $RepositoryRoot) { $actualFiles[$entry.path] = $entry.sha256 }
-
-    foreach ($path in ($expectedFiles.Keys | Sort-Object)) {
-        if (-not $actualFiles.ContainsKey($path)) { $mismatches.Add("file mancante: $path") }
-        elseif ($actualFiles[$path] -ne $expectedFiles[$path]) { $mismatches.Add("hash diverso: $path") }
-    }
-    foreach ($path in ($actualFiles.Keys | Sort-Object)) {
-        if (-not $expectedFiles.ContainsKey($path)) { $mismatches.Add("file non dichiarato: $path") }
+    foreach ($difference in Compare-FileEntries -Scope 'reserved' -Expected @($manifest.files) -Actual @(Get-ReservedFileEntries -RepositoryRoot $RepositoryRoot)) {
+        $mismatches.Add($difference)
     }
 
     $listingVerified = [bool]$ToolsNodeModulesPath
@@ -266,4 +177,4 @@ function Compare-ReservedManifest {
     return [pscustomobject]@{ mismatches = @($mismatches); testListingVerified = $listingVerified }
 }
 
-Export-ModuleMember -Function Get-NormalizedFileSha256, Get-ReservedFileEntries, Get-ListedReservedTests, New-ReservedManifestObject, Compare-ReservedManifest
+Export-ModuleMember -Function Get-ReservedFileEntries, Get-ListedReservedTests, New-ReservedManifestObject, Compare-ReservedManifest

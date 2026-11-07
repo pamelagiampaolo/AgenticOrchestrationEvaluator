@@ -37,7 +37,9 @@ osservate. Non certificano ancora un'esecuzione end-to-end del valutatore.
 ## Stato non ancora completato
 
 - Esiste il manifest canonico della suite riservata (`manifests/reserved-suite.manifest.json`,
-  `reserved-1`). Mancano i manifest della baseline e delle suite pubbliche.
+  `reserved-1`). Esiste anche `manifests/public-suite.manifest.json` (baseline e suite pubbliche,
+  `public-1`, commit baseline dichiarato `ddf08e8`). Manca un manifest degli
+  strumenti (versioni di Node, npm, TypeScript, Vitest) e del lock file come voce a parte.
 - Il runner locale generale non e ancora implementato.
 - Report machine-readable, schema JSON, exit code, timeout e verifiche generali
   di integrita non sono ancora congelati o validati end-to-end.
@@ -63,9 +65,21 @@ modificato, file rimosso, file extra e `test.skip`; exit 0 con CRLF; exit 2 per
 manifest assente. Limite: `vitest list` non elenca i test saltati, quindi
 skip/todo vanno rilevati anche nei report del futuro runner.
 
-Prossimo passo pianificato: manifest della baseline e delle suite pubbliche
-(dal repository principale, con test parametrici e le 21 esclusioni comuni di
-T6), poi il runner. Non avviare il runner senza nuova autorizzazione.
+Manifest della baseline e delle suite pubbliche (`evaluator/PublicManifest.psm1`,
+`New-PublicManifest.ps1`, `Test-PublicManifest.ps1`, `ManifestCommon.psm1`; il
+modulo riservato e stato rifattorizzato sul modulo comune e rigenerato con output
+identico). Verificato: generazione deterministica, positivo exit 0, exit 1 per
+src modificato, test aggiunto, file extra, config rimossa e manifest alterato
+(test inesistente, test spostato tra eseguiti/esclusi, conteggio incoerente),
+exit 2 per manifest assente e baseline senza tsconfig. Limiti: la baseline
+fallisce i test di task per costruzione, quindi il manifest non certifica nessuna
+soluzione; i nomi non sono stati confrontati con una soluzione corretta.
+
+Passi successivi pianificati: (2) schema JSON del riepilogo ed esiti con exit
+code; (3) runner: ingresso e copia immutabile; (4) build/typecheck; (5) suite
+pubblica e riservata con timeout; (6) validazione dei report; (7) test di
+accettazione e isolamento; (8) riconciliazione documentale. Non avviare il runner
+senza nuova autorizzazione.
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 

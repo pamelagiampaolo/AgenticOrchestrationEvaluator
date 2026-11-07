@@ -29,3 +29,24 @@ piu il test smoke. Gli identificatori sono ricavati da `vitest list --json`.
 Senza `-ToolsNodeModulesPath` la verifica controlla solo file e hash e lo dichiara.
 Una modifica ai test riservati richiede una nuova `suiteVersion`, non un
 aggiornamento retroattivo.
+
+## Manifest della baseline e delle suite pubbliche
+
+`manifests/public-suite.manifest.json` (versione `public-1`) congela 19 file della
+baseline (`package.json`, lock file, `tsconfig.json`, `vitest.public*.ts`, `src/`,
+`tests/public/`) e, per `common` e `T1`..`T6`, i test pubblici attesi. Gli
+identificatori vengono da un'esecuzione reale di Vitest con reporter JSON sulla
+baseline, perche `vitest list` non espande i test parametrici. Sulla baseline i
+test specifici del task falliscono (funzionalita non implementata): il manifest
+registra i nomi, non l'esito. Le esclusioni sono ammesse solo in T6 (6 test non
+eseguiti per `testNamePattern`; 26 eseguiti = 5 specifici + 21 comuni ammessi).
+Conteggi eseguiti: common 27, T1 4, T2 4, T3 3, T4 4, T5 30, T6 26.
+
+```powershell
+.\evaluator\Test-PublicManifest.ps1 -BaselinePath <BenchmarkTarget> -ToolsNodeModulesPath <node_modules-con-vitest>
+.\evaluator\New-PublicManifest.ps1 -BaselinePath <BenchmarkTarget> -ToolsNodeModulesPath <node_modules> -Force
+```
+
+Exit code: 0 coerente, 1 differenze, 2 errore dello strumento. Se i file non
+coincidono con il manifest i test non vengono eseguiti. Il manifest registra il
+commit dichiarato della baseline (`ddf08e8...`) ma l'autorita e l'hash dei file.
