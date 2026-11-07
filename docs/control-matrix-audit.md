@@ -61,8 +61,9 @@ oggi disponibile per l'intera matrice.
 - Controlli presenti ma non congelabili nello stato corrente: **0**.
 - Controlli dotati di fixture canoniche `compliant` e `violating`: **5**
   (`T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`). `T5-R01` include due varianti
-  conformi sintatticamente diverse. Restano inoltre due gruppi legacy sotto
-  `fixtures/t5/` e `fixtures/t5-r02-r03/`.
+  conformi sintatticamente diverse. Resta un solo gruppo legacy sotto
+  `fixtures/t5/`; il gruppo combinato `fixtures/t5-r02-r03/` e stato pensionato
+  dopo la validazione indipendente di `T5-R02` e `T5-R03`.
 - Controlli che soddisfano l'intero requisito di validazione positiva e negativa:
   **5 dimostrati** (`T2-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R04`).
 
@@ -108,16 +109,15 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 L'audit non congela ancora le suite. La matrice puo essere completata con
 iterazioni indipendenti nel seguente ordine:
 
-1. pensionare il controllo combinato legacy `t5-r02-r03.test.ts`, ora sostituito
-   dai controlli indipendenti `T5-R02` e `T5-R03`;
-2. creare progressivamente le coppie di fixture degli altri controlli;
-3. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
+1. creare progressivamente le coppie di fixture degli altri controlli;
+2. generare e verificare i manifest pubblici e riservati soltanto dopo che ogni
    controllo ha superato la propria validazione positiva e negativa.
 
 Ogni punto costituisce un'iterazione distinta. Dopo il completamento di
 `T2-R03`, `T6-R04`, della sostituzione AST di `T5-R01` e della separazione di
-`T5-R02` e `T5-R03`, il primo passo successivo raccomandato e quindi il solo
-pensionamento dei file combinati legacy, senza iniziare contestualmente il runner.
+`T5-R02` e `T5-R03`, i file combinati legacy sono stati pensionati. Il primo
+passo successivo raccomandato e creare e validare la coppia di fixture canoniche
+per `T1-R01`, senza iniziare contestualmente il runner.
 
 ## Limiti e lavoro non verificato
 
