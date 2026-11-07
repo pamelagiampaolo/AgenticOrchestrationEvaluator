@@ -24,10 +24,12 @@ quindi, in linea teorica, eseguire codice al caricamento e leggere file presenti
 nell'ambiente di lavoro. L'ambiente isolato protegge l'host, ma da solo non rende
 i test riservati illeggibili alla submission.
 
-La pipeline T1 dedicata e differente: esegue il candidato con un'identita Windows
-separata, applica ACL ai controlli riservati e usa un canale IPC con il runner
-fidato. E questa separazione, non la sola virtualizzazione, a dimostrare il
-diniego di lettura.
+La pipeline T1 dedicata, ora dismessa e documentata in
+`docs/archive/windows-sandbox-evaluator.md`, era diversa: eseguiva il candidato
+con un'identita Windows separata, applicava ACL ai controlli riservati e usava un
+canale IPC con il runner fidato. Era questa separazione, non la sola
+virtualizzazione, a dimostrare il diniego di lettura. Il runner locale attuale
+non la offre.
 
 ## Rischio concreto nel modello sperimentale
 
@@ -77,3 +79,25 @@ riservati condividono identita e processo.
 5. Questa decisione va riesaminata se gli agenti ottengono accesso ai controlli,
    possono interagire durante la valutazione, ricevono strumenti di esplorazione
    dell'host oppure vengono accettate submission esterne non controllate.
+
+## Stato dell'implementazione (7 novembre 2026)
+
+Il runner locale (`evaluator/Invoke-Evaluation.ps1`) realizza le misure elencate
+in "Decisione corrente":
+
+- copia di lavoro separata e archivio in sola lettura;
+- suite canoniche verificate con manifest;
+- timeout con terminazione dell'albero dei processi;
+- ambiente ridotto a un elenco di variabili ammesse;
+- report validati rispetto ai manifest;
+- riepilogo privo di identificatori riservati.
+
+I test di accettazione hanno confermato i limiti attesi da questo modello e li
+hanno registrati nel contratto (sezione "Accettazione e isolamento"):
+
+- il codice candidato puo leggere i test riservati durante la propria esecuzione;
+- puo modificare la propria copia dei test riservati, il sorgente originale o
+  l'archivio: il valutatore lo rileva come `integrity-error`, ma non lo impedisce;
+- puo modificare le dipendenze canoniche senza che il valutatore lo rilevi. Il
+  rischio e accettato con una mitigazione organizzativa: agli agenti e vietato
+  modificare `node_modules`.

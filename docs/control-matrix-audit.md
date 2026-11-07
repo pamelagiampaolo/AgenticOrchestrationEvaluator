@@ -12,6 +12,10 @@
 - Natura dell'audit: ispezione statica, aggiornata con le evidenze runtime delle
   iterazioni completate. `Presente` non significa `validato` in assenza di una
   prova positiva e negativa registrata.
+- Aggiornamento finale (7 novembre 2026, riconciliazione documentale): suite
+  congelate nei manifest `reserved-1` e `public-1` e matrice eseguita attraverso
+  l'orchestratore (sezione "Verifica attraverso l'orchestratore"). Le sezioni
+  storiche sono conservate e annotate dove lo stato e cambiato.
 
 ## Criteri di classificazione
 
@@ -26,8 +30,9 @@
 
 Ogni controllo e ora validato individualmente con una fixture conforme, una
 fixture con violazione mirata e una prova runtime del motivo discriminante. La
-matrice completa non e ancora congelata in manifest verificabili e non dispone
-ancora del runner generale.
+matrice e congelata in `manifests/reserved-suite.manifest.json` (`reserved-1`).
+Viene eseguita attraverso il runner generale da
+`evaluator/tests/Test-ControlMatrix.ps1`.
 
 ## Matrice riservata
 
@@ -84,9 +89,25 @@ submission. Le configurazioni osservate sono:
 
 I conteggi runtime comuni non sono congelati in questo audit. Alcuni casi sono
 parametrici e il contratto richiede un elenco canonico degli identificatori,
-non il solo conteggio delle chiamate `test` presenti nel sorgente. Per T6 le 21
-esclusioni positive sono gia espresse tramite `testNamePattern`, ma devono essere
-trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
+non il solo conteggio delle chiamate `test` presenti nel sorgente. Per T6 i 21
+nomi comuni ammessi sono gia espressi tramite `testNamePattern`, ma devono essere
+trasformati in un manifest verificabile prima delle esecuzioni ufficiali.
+
+Aggiornamento: gli identificatori sono congelati in
+`manifests/public-suite.manifest.json` (`public-1`), ricavati da un'esecuzione
+reale con reporter JSON. Test eseguiti per scope:
+
+| Scope | Test eseguiti |
+| --- | ---: |
+| common | 27 |
+| T1 | 4 |
+| T2 | 4 |
+| T3 | 3 |
+| T4 | 4 |
+| T5 | 30 |
+| T6 | 26 |
+
+T6 ha in piu 6 test comuni dichiarati come esclusi.
 
 ## Problemi trasversali osservati
 
@@ -104,6 +125,19 @@ trasformate in un manifest verificabile prima delle esecuzioni ufficiali.
 5. Lo smoke test usa una fixture separata valida, ma certifica soltanto il
    collegamento minimo tra suite e submission; non valida la matrice canonica.
 
+Stato al 7 novembre 2026:
+
+1. **Risolto.** La validazione dei report (`evaluator/ReportValidation.psm1`)
+   confronta gli identificatori eseguiti con il manifest riservato.
+2. **Risolto.** I percorsi assoluti sono stati rimossi dai controlli T5 con la
+   riscrittura AST (commit `cd3110b`); nessun file di `reserved/` li contiene.
+3. **Risolto.** Tutte le fixture dei controlli sono in `fixtures/controls/`; i
+   gruppi legacy sono pensionati. `fixtures/t1-ipc-compliant/` contiene solo
+   directory vuote, residuo della pipeline IPC dismessa, e Git non le traccia.
+4. **Risolto** da `evaluator/tests/Test-ControlMatrix.ps1`, con la deroga per 11
+   fixture descritta sotto.
+5. **Invariato.**
+
 ## Decisione risultante e ordine di completamento
 
 L'audit non congela ancora le suite. La matrice puo essere completata con
@@ -120,6 +154,9 @@ controllo successivo validato e `T6-R03`; tutti i 19 controlli dispongono ora di
 evidenza positiva e negativa. Anche l'ultimo gruppo legacy `fixtures/t5/` e stato pensionato. Il passo
 successivo e la generazione e verifica dei manifest canonici, senza iniziare
 contestualmente il runner.
+
+Questo ordine e stato completato: manifest generati e verificati, poi runner
+costruito nei Passi 2-8 (vedi `docs/handoff.md`).
 
 ## Verifica attraverso l'orchestratore (Passo 8, 7 novembre 2026)
 
@@ -145,17 +182,22 @@ Osservato:
 
 ## Limiti e lavoro non verificato
 
-- Sono stati eseguiti soltanto i test mirati `T1-R01`, `T1-R02`, `T1-R03`,
-  `T2-R01`, `T2-R02`, `T2-R03`, `T3-R01`, `T3-R02`, `T3-R03`, `T4-R01`,
-  `T4-R02`, `T4-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R01`, `T6-R02`, `T6-R03` e `T6-R04`;
-  gli altri controlli non sono stati eseguiti.
-- E stata provata soltanto la compilazione delle fixture `T1-R01`, `T1-R02`,
-  `T1-R03`, `T2-R01`, `T2-R02`, `T2-R03`, `T3-R01`, `T3-R02`, `T3-R03`,
-  `T4-R01`, `T4-R02`, `T4-R03`, `T5-R01`, `T5-R02`, `T5-R03`, `T6-R01`, `T6-R02`, `T6-R03` e
-  `T6-R04`.
-- Non e stato verificato che le suite correnti producano report machine-readable
-  validi.
-- Non sono stati congelati hash, versioni degli strumenti, exit code o schema
-  del riepilogo.
-- La classificazione descrive il sorgente osservato e non certifica il
-  comportamento runtime.
+Stato al 7 novembre 2026.
+
+Verificato:
+
+- tutti i 19 controlli e tutte le 39 fixture sono stati eseguiti attraverso
+  l'orchestratore, con build completa (typecheck ed emissione);
+- i report JSON di Vitest sono stati validati rispetto ai manifest;
+- sono congelati gli hash delle suite (`reserved-1`, `public-1`), gli exit code
+  e lo schema v1 del riepilogo.
+
+Ancora aperto:
+
+- le versioni degli strumenti sono registrate in ogni riepilogo, ma non sono
+  congelate in un manifest dell'esperimento;
+- 11 fixture sono validate solo sul proprio controllo (deroga accettata);
+- per T3 i controlli riservati non intercettano il difetto della baseline
+  coperto da T3-P02 (documentato);
+- le fixture verificano che i controlli discriminino, non che una soluzione reale
+  di un agente venga valutata correttamente: questo e compito delle prove pilota.

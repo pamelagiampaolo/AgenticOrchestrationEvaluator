@@ -2,11 +2,16 @@
 
 ## Stato del documento
 
-- Fase: completamento del progetto dei test esterni, Passo 0.
-- Stato: decisioni approvate dall'utente il 7 novembre 2026.
-- Scopo: congelare input, output, criteri di successo e confini del nuovo
-  evaluator locale prima di implementarlo.
-- Fuori perimetro: questo documento non implementa runner, test o report.
+- Fase: nato al Passo 0 come contratto da congelare prima dell'implementazione;
+  aggiornato fino al Passo 8 e alla riconciliazione documentale finale (7 novembre 2026).
+- Stato: decisioni del Passo 0 approvate dall'utente il 7 novembre 2026. Le sezioni
+  successive (Passi 3-8) registrano le decisioni prese durante l'implementazione e il
+  loro stato di conferma.
+- Implementazione: `evaluator/Invoke-Evaluation.ps1` realizza il contratto. E stato
+  provato con soluzioni di prova (T1) e con le 39 fixture dei controlli (T1-T6), ma
+  non ancora usato per prove pilota o valutazioni ufficiali.
+- Dove il testo del Passo 0 e l'implementazione divergono, la divergenza e
+  indicata nella sezione interessata.
 
 ## Obiettivo
 
@@ -34,13 +39,20 @@ valutazione di T4, per esempio, non richiede e non esegue le soluzioni T1-T3.
 
 ## Input del comando
 
-L'entry point del futuro evaluator deve ricevere almeno:
+L'entry point deve ricevere almeno submission e task. L'implementazione richiede
+anche la baseline canonica e le dipendenze canoniche (TypeScript e Vitest), che il
+repository fidato non contiene:
 
 ```powershell
-Invoke-Evaluation.ps1 `
+.\evaluator\Invoke-Evaluation.ps1 `
     -SubmissionPath <directory-BenchmarkTarget> `
-    -TaskId T1
+    -TaskId T1 `
+    -BaselinePath <BenchmarkTarget-canonico> `
+    -ToolsNodeModulesPath <node_modules-con-typescript-e-vitest>
 ```
+
+Parametri facoltativi: `-RunsRoot`, `-RunId`, `-BuildTimeoutSeconds`,
+`-PublicTimeoutSeconds`, `-ReservedTimeoutSeconds`, `-KeepWorkspace`.
 
 `SubmissionPath` identifica una directory contenente una copia completa di
 `BenchmarkTarget`, inclusi almeno `package.json`, lock file, configurazione
@@ -107,6 +119,10 @@ Per il task selezionato l'evaluator esegue, nell'ordine:
 4. test pubblici specifici del task;
 5. test riservati specifici del task.
 
+Nell'implementazione il punto 1 si riduce al collegamento delle dipendenze
+canoniche indicate da `-ToolsNodeModulesPath`: non vengono installate e il loro
+contenuto non e verificato (limite accettato, vedi "Accettazione e isolamento").
+
 Il riepilogo mantiene separati almeno:
 
 - esito build/typecheck;
@@ -158,6 +174,12 @@ fixtures/
 
 Una fixture puo essere condivisa soltanto quando la relazione e dichiarata e non
 rende ambiguo quale proprieta abbia determinato il risultato.
+
+Stato reale: le fixture dei controlli seguono il layout `fixtures/controls/`
+(39 fixture; T5-R01 ha sottovarianti). La fixture smoke non e stata spostata in
+`fixtures/smoke/known-good/` e resta in `fixture/submission/`. Per 11 fixture vale
+soltanto la proprieta sul proprio controllo (deroga in "Accettazione e
+isolamento").
 
 ## Regola specifica per T5
 
@@ -248,29 +270,37 @@ questa eventuale pubblicazione e esterna al flusso di esecuzione degli agenti.
 
 ## Layout persistente di una run
 
-Ogni run conserva almeno:
+Layout prodotto dall'implementazione:
 
 ```text
 runs/<runId>/
 |-- input/
-|   |-- submission/
+|   |-- submission/                (copia archiviata, sola lettura)
 |   |-- submission-manifest.json
 |   `-- metadata.json
 |-- raw/
 |   |-- build.stdout.txt
 |   |-- build.stderr.txt
-|   |-- public-report.json
+|   |-- public-<scope>-report.json (uno per scope: common e/o task)
 |   |-- public.stdout.txt
 |   |-- public.stderr.txt
 |   |-- reserved-report.json
 |   |-- reserved.stdout.txt
 |   `-- reserved.stderr.txt
-`-- evidence/
-    `-- evaluation-summary.json
+|-- evidence/
+|   |-- evaluation-summary.json    (senza identificatori riservati)
+|   `-- report-validation.json     (dettagli, anche riservati: solo ricercatore)
+`-- work/                          (copia di lavoro, rimossa a fine run)
 ```
 
+Rispetto al layout del Passo 0, i report pubblici sono uno per scope invece di uno
+unico, ed e stato aggiunto `evidence/report-validation.json`. I file presenti
+dipendono da quanto la run e avanzata: per esempio, con build fallita non ci sono
+report di test.
+
 La copia di lavoro temporanea non e parte delle evidenze e viene rimossa soltanto
-dopo che report e manifest sono stati acquisiti. I dati persistenti non includono
+dopo che report e manifest sono stati acquisiti. Se la run viene interrotta,
+resta su disco e va rimossa manualmente. I dati persistenti non includono
 credenziali o variabili d'ambiente non pertinenti.
 
 ## Ambiente e riproducibilita
@@ -295,9 +325,20 @@ ufficiali finche non vengono confermati dalle prove pilota e congelati nel
 manifest dell'esperimento.
 
 L'interrogazione dettagliata del sistema operativo non era disponibile al
-processo corrente per limiti di permesso. Il futuro evaluator deve usare un
-metodo leggibile senza privilegi elevati e registrare `unavailable` se un campo
-non puo essere acquisito; non deve inventare valori.
+processo corrente per limiti di permesso. L'evaluator usa metodi leggibili senza
+privilegi elevati e registra `unavailable` se un campo non puo essere acquisito;
+non inventa valori.
+
+L'implementazione registra questi campi nel riepilogo:
+
+- in `environment`: `windows`, `architecture`, `node`, `npm`, `typescript`,
+  `vitest`, `lockFileSha256` (lock file della baseline) e `evaluatorVersion`
+  (commit, con `-dirty` se ci sono modifiche);
+- in `suites.baselineDeclaredCommit`: il commit della baseline, preso dal manifest
+  pubblico e non da un orchestratore esterno, che non esiste ancora;
+- in `startedAtUtc` e `finishedAtUtc`: inizio e fine.
+
+Le versioni non sono ancora congelate in un manifest dell'esperimento.
 
 ## Fase di build (Passo 4, 7 novembre 2026)
 
@@ -347,9 +388,10 @@ Decisioni da confermare:
   altra combinazione (per esempio exit 1 senza report) e `error` (errore del
   valutatore). Un timeout termina l'albero dei processi e interrompe la sequenza.
 - Limite: 120 secondi per fase (complessivo sugli scope della fase).
-- Limite noto: la validazione dei report rispetto ai manifest (test mancanti,
-  inattesi, saltati, `todo`, duplicati) NON e ancora implementata: `passed` di fase
-  significa solo che Vitest e il suo report non riportano fallimenti.
+- `passed` di fase, preso da solo, significa soltanto che Vitest e il suo report non
+  riportano fallimenti. Il confronto con i manifest (test mancanti, inattesi, saltati,
+  `todo`, duplicati) e una fase separata, aggiunta al Passo 6 (`Test-PhaseReports.ps1`).
+  L'orchestratore la applica sempre.
 - Limite noto: Vitest scrive la propria cache in `node_modules/.vite` attraverso la
   junction, cioe dentro le dipendenze canoniche.
 
@@ -381,7 +423,8 @@ protegge da una submission che alteri il report durante la propria esecuzione
 ## Orchestratore e riepilogo (Passo 7, 7 novembre 2026)
 
 `evaluator/Invoke-Evaluation.ps1` concatena ingresso, build, suite pubblica, suite riservata e
-validazione dei report e produce `evidence/evaluation-summary.json`. Decisioni da confermare:
+validazione dei report e produce `evidence/evaluation-summary.json`. Decisioni confermate
+dall'utente il 7 novembre 2026 (vedi il Passo 8):
 
 - Dopo una build riuscita le due suite girano sempre entrambe, anche se la prima ha test
   falliti, per raccogliere piu evidenze; si fermano solo per violazioni di integrita. Build
@@ -461,15 +504,20 @@ sperimentali equivalenti.
 
 ## Manifest canonici
 
-Prima delle esecuzioni ufficiali devono essere congelati:
+Prima delle esecuzioni ufficiali devono essere congelati i seguenti elementi.
+Lo stato e quello del 7 novembre 2026.
 
-- manifest della baseline;
-- manifest dei test pubblici per task;
-- manifest dei test riservati per task;
-- elenco e conteggio degli identificatori attesi;
-- esclusioni comuni applicabili a T6;
-- versioni degli strumenti;
-- schema JSON del riepilogo.
+- manifest della baseline: congelato in `manifests/public-suite.manifest.json`
+  (`public-1`);
+- manifest dei test pubblici per task: congelato nello stesso file;
+- manifest dei test riservati per task: congelato in
+  `manifests/reserved-suite.manifest.json` (`reserved-1`);
+- elenco e conteggio degli identificatori attesi: congelati nei due manifest;
+- esclusioni comuni applicabili a T6: congelate nel manifest pubblico (6 test);
+- versioni degli strumenti: **non ancora congelate**. Sono registrate in ogni
+  riepilogo, ma non c'e un manifest dell'esperimento che le fissi;
+- schema JSON del riepilogo: v1, prodotto e validato dall'orchestratore; da
+  confermare dopo le prove pilota.
 
 Una modifica a uno di questi elementi richiede una nuova versione della suite e
 non puo essere applicata retroattivamente soltanto ad alcune run.
@@ -489,10 +537,11 @@ Con questo contratto sono approvati:
 9. conservazione completa della submission da parte dell'evaluator;
 10. organizzazione delle fixture per task e controllo.
 
-Restano intenzionalmente da determinare mediante i passi successivi:
+Erano lasciati da determinare nei passi successivi:
 
-- inventario definitivo e conteggi canonici delle suite;
-- versioni ufficiali dell'ambiente dopo le prove pilota;
-- versione definitiva dello schema JSON dopo l'uso del runner reale (la v1 e
-  stata definita ma non ancora prodotta da un runner);
-- integrazione con l'orchestratore principale.
+- inventario definitivo e conteggi canonici delle suite: determinati nei manifest
+  `public-1` e `reserved-1`;
+- versioni ufficiali dell'ambiente dopo le prove pilota: ancora aperto;
+- versione definitiva dello schema JSON dopo l'uso del runner reale: la v1 e
+  prodotta dall'orchestratore, ma la versione definitiva attende le prove pilota;
+- integrazione con l'orchestratore principale: ancora aperto.

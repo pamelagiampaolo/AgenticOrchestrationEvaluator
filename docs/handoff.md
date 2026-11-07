@@ -4,8 +4,10 @@
 
 - Data: 7 novembre 2026.
 - Responsabile operativo successivo: Claude.
-- Commit di riferimento: `5cbc11a` (`test: complete reserved control matrix with T6-R03`).
-- Working tree al momento del passaggio: pulito.
+- Commit di riferimento: `042db36` (`test: add acceptance and control-matrix tests through the
+  orchestrator`), piu la riconciliazione documentale finale (da committare). Il passaggio
+  iniziale era su `5cbc11a`.
+- Working tree: pulito a `042db36`. Dopo la riconciliazione sono modificati solo documenti.
 - Scopo: permettere a Claude di proseguire senza perdere il contesto e a Codex
   di recuperare lo stato effettivo quando tornera sul repository.
 
@@ -31,24 +33,43 @@ esplicita dell'utente.
   eseguite per verificare che ciascuna violazione fallisse soltanto il controllo
   previsto.
 
-Questi risultati certificano i singoli controlli e le proprieta direttamente
-osservate. Non certificano ancora un'esecuzione end-to-end del valutatore.
+- Manifest congelati: suite riservata (`reserved-1`) e baseline piu suite pubbliche
+  (`public-1`).
+- Evaluator locale completo (Passi 2-8): ingresso, build, suite pubblica e
+  riservata, validazione dei report e riepilogo validato con lo schema. E coperto
+  da test unitari, di accettazione e dalla matrice dei 39 controlli eseguita
+  attraverso l'orchestratore.
+- Riconciliazione documentale finale: contratto, audit, threat model, README e
+  CLAUDE.md allineati allo stato reale.
 
-## Stato non ancora completato
+## Ancora aperto
 
-- Esiste il manifest canonico della suite riservata (`manifests/reserved-suite.manifest.json`,
-  `reserved-1`). Esiste anche `manifests/public-suite.manifest.json` (baseline e suite pubbliche,
-  `public-1`, commit baseline dichiarato `ddf08e8`). Manca un manifest degli
-  strumenti (versioni di Node, npm, TypeScript, Vitest) e del lock file come voce a parte.
-- Il runner locale generale non e ancora implementato.
-- Report machine-readable, schema JSON, exit code, timeout e verifiche generali
-  di integrita non sono ancora congelati o validati end-to-end.
-- `fixtures/t1-ipc-compliant` esiste su disco ma non e tracciato da Git; non ispezionato.
-- Prettier non risultava disponibile nell'ambiente usato per le verifiche.
-- Vitest/Vite emette un avviso non bloccante sulle configurazioni TypeScript con
-  sintassi ESM caricate come CommonJS e sul futuro `configLoader: native`.
+Valido dopo la riconciliazione del 7 novembre 2026.
 
-## Prossimo passo
+- **Nessuna prova pilota o valutazione ufficiale e stata eseguita.** Sono
+  attivita successive e richiedono una nuova autorizzazione. Servono a confermare
+  timeout, schema v1 e versioni dell'ambiente.
+- **Manca un manifest dell'esperimento con le versioni degli strumenti**: Node,
+  npm, TypeScript, Vitest e lock file. Le versioni sono registrate in ogni
+  riepilogo, ma non sono congelate.
+- **Decisioni dei Passi 3-6 non ancora confermate esplicitamente dall'utente.**
+  Sono descritte nel contratto, nelle sezioni "Input del comando", "Fase di
+  build", "Fasi di test" e "Validazione dei report", e sono tuttora marcate
+  "da confermare". Quelle del Passo 7 sono state confermate.
+- **Limiti accettati** (contratto, sezione "Accettazione e isolamento"):
+  - dipendenze canoniche non verificate;
+  - 11 fixture validate solo sul proprio controllo;
+  - T3 superato dalla baseline;
+  - test riservati leggibili dal codice candidato.
+- **Non ancora integrato con l'orchestratore principale** della sperimentazione.
+- **Residui e avvisi dell'ambiente:**
+  - `fixtures/t1-ipc-compliant/` contiene solo directory vuote non tracciate,
+    residuo della pipeline IPC dismessa. Non e stato rimosso, perche serve
+    autorizzazione;
+  - Prettier non e disponibile;
+  - Vitest/Vite emette un avviso non bloccante sulle configurazioni TypeScript.
+
+## Cronologia dei passi
 
 Il 7 novembre 2026 `fixtures/t5/` e stato ispezionato (nessun riferimento da
 test o configurazioni, tutti i file diversi dalle fixture canoniche, violazione
@@ -173,9 +194,30 @@ Questioni aperte del passo 8, decise dall'utente il 7 novembre 2026 e chiuse nel
    dal test della matrice.
 4. T3 superato dalla baseline: documentato, nessun nuovo controllo.
 
-Prossimo e ultimo passo proposto: riconciliazione documentale finale (contratto, audit, README,
-handoff coerenti con lo stato reale e tra loro). Le prove pilota e le valutazioni ufficiali sono
-attivita successive e richiedono una nuova autorizzazione.
+Riconciliazione documentale finale (7 novembre 2026), solo documenti e nessuna modifica al
+codice:
+
+- contratto: stato, firma reale del comando, dipendenze non installate, layout reale della run,
+  campi dell'ambiente, stato dei manifest canonici, limite superato della fase di test;
+- audit: stato finale e problemi trasversali risolti (i percorsi assoluti T5 erano gia stati
+  rimossi con `cd3110b`);
+- threat model: pipeline T1 indicata come dismessa, nuova sezione sullo stato
+  dell'implementazione;
+- README, `evaluator/README.md` e CLAUDE.md: aggiornati.
+
+Nella cronologia sopra i conteggi riflettono lo stato del momento: il test del riepilogo, per
+esempio, era a 54 asserzioni al Passo 2 ed e a 56 dal Passo 7.
+
+## Prossimo passo
+
+Il piano di costruzione e concluso. Le attivita successive richiedono una nuova
+autorizzazione:
+
+1. confermare o modificare le decisioni dei Passi 3-6;
+2. eseguire prove pilota con soluzioni reali, per fissare timeout, schema e versioni;
+3. congelare il manifest dell'esperimento con le versioni degli strumenti;
+4. avviare le valutazioni ufficiali.
+
 Nota: Vitest non e installato in questo repository; per le prove si e usato
 `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
 

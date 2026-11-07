@@ -2,29 +2,38 @@
 
 Private evaluation workspace for the `TesiAgenticAI` project.
 
-The repository keeps reserved tests outside the main source repository. Its
-evaluator is being rebuilt around a local controlled runner that will produce an
-integrity manifest, machine-readable evidence, and execution logs under `runs/`.
+The repository keeps reserved tests outside the main source repository. A
+local, controlled evaluator runs the canonical public and reserved suites against
+a submission. It writes inputs, raw reports and validated evidence under `runs/`.
 
 ## Structure
 
-- `evaluator/`: clean starting point for the local evaluator. The retired
-  Windows Sandbox architecture is documented under `docs/archive/`.
+- `evaluator/`: local evaluator in Windows PowerShell 5.1. The entry point is
+  `Invoke-Evaluation.ps1`. Tests are in `evaluator/tests/`, and usage is described
+  in `evaluator/README.md`.
+- `manifests/`: frozen manifests of the reserved suite (`reserved-1`) and of the
+  baseline plus public suites (`public-1`).
+- `schemas/`: JSON schema of the evaluation summary.
 - `reserved/`: private Vitest controls and their configurations.
-- `fixture/`: frozen submission used by the evaluator smoke test.
-- `fixtures/`: compliant and violating submissions for architectural controls.
+- `fixture/`: frozen submission used by the reserved smoke test.
+- `fixtures/controls/`: compliant and violating submissions for each reserved control.
+- `docs/`: evaluator contract, threat model, control-matrix audit and handoff.
+  The documentation is written in Italian.
 - `runs/`: generated evaluation inputs, outputs, and evidence (not versioned).
 
 ## Evaluator status
 
-The previous Windows Sandbox entry points have been retired. Their behavior,
-limitations, and reusable concepts are preserved in
-`docs/archive/windows-sandbox-evaluator.md`. A local evaluator will replace
-them incrementally, starting from the smoke test.
+The evaluator is implemented and covered by unit, acceptance and control-matrix
+tests. It has been exercised with test solutions and with all 39 control
+fixtures. It has not yet been used for pilot runs or official evaluations.
 
-The evaluator currently expects the main repository at
-`C:\Users\Utente\TesiAgenticAI`. This path is configured in the host-side
-PowerShell scripts.
+The previous Windows Sandbox architecture is retired. It is documented in
+`docs/archive/windows-sandbox-evaluator.md`.
+
+The evaluator needs two external locations: a canonical `BenchmarkTarget`
+baseline, normally `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`, and a
+`node_modules` directory with TypeScript and Vitest. Both are passed as
+parameters. This repository has no dependencies of its own.
 
 ## Development handoff
 

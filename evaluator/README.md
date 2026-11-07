@@ -1,17 +1,17 @@
 # Evaluator
 
-La precedente implementazione basata su Windows Sandbox e stata rimossa per
-consentire la costruzione pulita di un evaluator locale coerente con il modello
-di fiducia corrente.
+Evaluator locale in Windows PowerShell 5.1, senza dipendenze proprie. TypeScript e
+Vitest arrivano da un `node_modules` esterno, indicato con `-ToolsNodeModulesPath`.
+Sostituisce la precedente implementazione basata su Windows Sandbox, documentata in
+`docs/archive/windows-sandbox-evaluator.md`.
 
-L'architettura dismessa e documentata in
-`docs/archive/windows-sandbox-evaluator.md`. Il nuovo evaluator dovra conservare
-integrita degli input, timeout, validazione dei report e tracciabilita delle
-evidenze senza dipendere obbligatoriamente dalla virtualizzazione.
+Il punto di ingresso e `Invoke-Evaluation.ps1` (sezione "Valutazione completa").
+Gli altri script eseguono le singole fasi e servono per diagnosi e test.
+L'evaluator e stato provato con soluzioni di prova e con le 39 fixture dei
+controlli, ma non ancora usato per prove pilota o valutazioni ufficiali.
 
-Il contratto approvato del nuovo evaluator e definito in
-`docs/evaluator-contract.md`. L'implementazione deve procedere per passi
-verificabili a partire dall'audit della matrice dei controlli.
+Il contratto, con le decisioni e i limiti accettati, e in
+`docs/evaluator-contract.md`. Lo stato del lavoro e in `docs/handoff.md`.
 
 ## Manifest della suite riservata
 
@@ -75,8 +75,9 @@ il task (T1-T4) oppure solo il task (T5, T6). La suite riservata copia in
 `work/reserved/` i soli file del task (hash verificati contro
 `reserved-suite.manifest.json`), li esegue accanto a `work/submission/` e li
 riverifica dopo l'esecuzione. Report JSON grezzi in `raw/`. Exit code: 0 `passed`, 10
-`test-failures`, 12 `timeout`, 30 `integrity-error`, 40 `evaluator-error`. Non valida
-ancora i report rispetto ai manifest. Test:
+`test-failures`, 12 `timeout`, 30 `integrity-error`, 40 `evaluator-error`. Lo script da
+solo non confronta i report con i manifest: lo fanno `Test-PhaseReports.ps1` e
+l'orchestratore. Test:
 `.\evaluator\tests\Test-TestPhases.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
 
 ## Validazione dei report
