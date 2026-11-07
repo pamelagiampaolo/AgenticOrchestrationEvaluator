@@ -157,7 +157,7 @@ try {
     $candidate = Start-Process -FilePath (Join-Path $runtimeRoot 'node.exe') `
         -Credential $credential `
         -ArgumentList @(
-            (Join-Path $candidateRoot 't1-candidate-host.mjs'),
+            (Join-Path $candidateRoot 'T1CandidateProcess.mjs'),
             $pipeName,
             (Join-Path $candidateRoot 'submission\src\index.mjs')) `
         -WorkingDirectory $candidateRoot -Wait -PassThru -WindowStyle Hidden

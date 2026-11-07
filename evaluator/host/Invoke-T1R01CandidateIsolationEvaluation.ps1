@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([ValidateRange(1, 300)][int]$TimeoutSeconds = 120)
 $ErrorActionPreference = 'Stop'
-$trustedRoot = Split-Path -Parent $PSScriptRoot; $runtimeNode = (Get-Command node.exe -ErrorAction Stop).Source; $wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
+$evaluatorRoot = Split-Path -Parent $PSScriptRoot; $trustedRoot = Split-Path -Parent $evaluatorRoot; $guestRoot = Join-Path $evaluatorRoot 'guest'; $runtimeNode = (Get-Command node.exe -ErrorAction Stop).Source; $wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
 $runId = [guid]::NewGuid().ToString('N'); $runRoot = Join-Path $trustedRoot "runs\$runId"; $inputRoot = Join-Path $runRoot 'worker-input'; $outputRoot = Join-Path $runRoot 'worker-output'; $evidenceRoot = Join-Path $runRoot 'evidence'; $summaryPath = Join-Path $evidenceRoot 'evaluation-summary.json'; $sandboxId = $null; $stopSucceeded = $false
 $wsbExecStdoutPath = Join-Path $evidenceRoot 'wsb-exec.stdout.txt'; $wsbExecStderrPath = Join-Path $evidenceRoot 'wsb-exec.stderr.txt'; $wsbExecResultPath = Join-Path $evidenceRoot 'wsb-exec-result.json'
 
@@ -53,7 +53,7 @@ function Save-WsbExecDiagnostic {
     [ordered]@{ timedOut = [bool]$Result.timedOut; exitCode = $Result.exitCode } | ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 -LiteralPath $wsbExecResultPath
 }
 New-Item -ItemType Directory -Path (Join-Path $inputRoot 'runtime'),(Join-Path $inputRoot 'reserved'),(Join-Path $inputRoot 'candidate\submission\src'),$outputRoot,$evidenceRoot -Force | Out-Null
-Copy-Item $runtimeNode (Join-Path $inputRoot 'runtime\node.exe'); Copy-Item (Join-Path $trustedRoot 'reserved\t1-r01-ipc-runner.ps1') (Join-Path $inputRoot 'reserved\t1-r01-ipc-runner.ps1'); Copy-Item (Join-Path $PSScriptRoot 't1-candidate-host.mjs') (Join-Path $inputRoot 'candidate\t1-candidate-host.mjs'); Copy-Item (Join-Path $trustedRoot 'fixtures\t1-ipc-compliant\src\index.mjs') (Join-Path $inputRoot 'candidate\submission\src\index.mjs'); Copy-Item (Join-Path $PSScriptRoot 'Run-T1R01CandidateIsolationGuest.ps1') (Join-Path $inputRoot 'Run-T1R01CandidateIsolationGuest.ps1')
+Copy-Item $runtimeNode (Join-Path $inputRoot 'runtime\node.exe'); Copy-Item (Join-Path $trustedRoot 'reserved\t1-r01-ipc-runner.ps1') (Join-Path $inputRoot 'reserved\t1-r01-ipc-runner.ps1'); Copy-Item (Join-Path $guestRoot 'T1CandidateProcess.mjs') (Join-Path $inputRoot 'candidate\T1CandidateProcess.mjs'); Copy-Item (Join-Path $trustedRoot 'fixtures\t1-ipc-compliant\src\index.mjs') (Join-Path $inputRoot 'candidate\submission\src\index.mjs'); Copy-Item (Join-Path $guestRoot 'Run-T1R01CandidateIsolationGuest.ps1') (Join-Path $inputRoot 'Run-T1R01CandidateIsolationGuest.ps1')
 $escapedInput = [Security.SecurityElement]::Escape($inputRoot); $escapedOutput = [Security.SecurityElement]::Escape($outputRoot)
 $configuration = "<Configuration><VGpu>Disable</VGpu><Networking>Disable</Networking><ClipboardRedirection>Disable</ClipboardRedirection><MappedFolders><MappedFolder><HostFolder>$escapedInput</HostFolder><SandboxFolder>C:\EvaluatorInput</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder><MappedFolder><HostFolder>$escapedOutput</HostFolder><SandboxFolder>C:\EvaluatorOutput</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder></MappedFolders></Configuration>"
 try {

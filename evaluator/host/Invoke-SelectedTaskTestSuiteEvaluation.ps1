@@ -13,13 +13,15 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$trustedRoot = Split-Path -Parent $PSScriptRoot
+$evaluatorRoot = Split-Path -Parent $PSScriptRoot
+$trustedRoot = Split-Path -Parent $evaluatorRoot
+$guestRoot = Join-Path $evaluatorRoot 'guest'
 $repositoryRoot = 'C:\Users\Utente\TesiAgenticAI'
 $submissionSource = Join-Path $trustedRoot "fixtures\t5-r02-r03\$FixtureId"
 $reservedSource = Join-Path $trustedRoot 'reserved'
 $publicTestsSource = Join-Path $repositoryRoot 'BenchmarkTarget\tests\public'
 $publicConfigSource = Join-Path $repositoryRoot ("BenchmarkTarget\vitest.public.{0}.config.ts" -f $TaskId.ToLowerInvariant())
-$guestScriptSource = Join-Path $PSScriptRoot 'Run-SelectedTaskTestSuiteGuest.ps1'
+$guestScriptSource = Join-Path $guestRoot 'Run-SelectedTaskTestSuiteGuest.ps1'
 $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
 $dependencySource = Join-Path $repositoryRoot 'BenchmarkTarget\node_modules'
 $wsbPath = (Get-Command wsb.exe -ErrorAction Stop).Source
