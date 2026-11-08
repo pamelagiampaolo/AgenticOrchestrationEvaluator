@@ -57,6 +57,17 @@ function Get-NormalizedSummaryText {
     return $copy | ConvertTo-Json -Depth 10
 }
 
+# Impronta delle cache di Vitest nelle dipendenze canoniche (file e dimensioni). Le run non devono
+# scriverci: le cache contengono esiti e moduli trasformati dei test, anche riservati.
+function Get-ToolsCacheFingerprint {
+    $entries = foreach ($name in '.vite', '.vitest-cache', '.vitest') {
+        $path = Join-Path $ToolsNodeModulesPath $name
+        if (Test-Path -LiteralPath $path) { Get-ChildItem -LiteralPath $path -Recurse -File -Force | ForEach-Object { "$($_.FullName)|$($_.Length)|$($_.LastWriteTimeUtc.Ticks)" } }
+    }
+    return (@($entries) | Sort-Object) -join "`n"
+}
+$cacheBefore = Get-ToolsCacheFingerprint
+
 $workspace = Join-Path ([System.IO.Path]::GetTempPath()) ('acceptance-test-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $workspace | Out-Null
 try {
@@ -168,6 +179,7 @@ try {
     Assert-That 'interruzione: la stessa submission si valuta senza problemi con un nuovo RunId' ($retry.outcome -eq 'passed')
 
     Assert-That 'le dipendenze canoniche reali sono ancora presenti' (Test-Path (Join-Path $ToolsNodeModulesPath '.bin\vitest.cmd'))
+    Assert-That 'le run non scrivono cache di Vitest (.vite, .vitest-cache, .vitest) nelle dipendenze canoniche' ((Get-ToolsCacheFingerprint) -eq $cacheBefore)
 }
 finally {
     Remove-TestWorkspace -Path $workspace

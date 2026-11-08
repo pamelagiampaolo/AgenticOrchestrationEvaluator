@@ -194,7 +194,9 @@ function Invoke-VitestSteps {
         $environment = @{ VITE_CONFIG_NATIVE_IGNORE_WARNING = 'true' }
         foreach ($key in $step.environment.Keys) { $environment[$key] = $step.environment[$key] }
         try {
-            $process = Invoke-ControlledProcess -CommandPath $vitest -Arguments @('run', '--config', $step.config, '--reporter=json', "--outputFile=$reportPath") `
+            # Cache disattivate: altrimenti Vitest scrive nelle dipendenze canoniche (node_modules/.vite e
+            # .vitest-cache) esiti e moduli trasformati dei test, compresi quelli riservati.
+            $process = Invoke-ControlledProcess -CommandPath $vitest -Arguments @('run', '--config', $step.config, '--cache=false', '--fsModuleCache=false', '--reporter=json', "--outputFile=$reportPath") `
                 -WorkingDirectory $step.workingDirectory -StdoutPath $stepOut -StderrPath $stepErr -TimeoutMilliseconds $remaining -AdditionalEnvironment $environment
         }
         catch {

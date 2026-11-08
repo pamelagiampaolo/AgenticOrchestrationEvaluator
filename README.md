@@ -30,10 +30,14 @@ fixtures. It has not yet been used for pilot runs or official evaluations.
 The previous Windows Sandbox architecture is retired. It is documented in
 `docs/archive/windows-sandbox-evaluator.md`.
 
-The evaluator needs two external locations: a canonical `BenchmarkTarget`
-baseline, normally `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`, and a
-`node_modules` directory with TypeScript and Vitest. Both are passed as
-parameters. This repository has no dependencies of its own.
+The evaluator needs two external locations, both passed as parameters. They are
+kept in `C:\Users\Utente\TesiEvaluatorTools`, outside the main repository that
+agents can access:
+
+- `baseline-ddf08e8`: the frozen `BenchmarkTarget` baseline;
+- `tools\node_modules`: TypeScript and Vitest.
+
+This repository has no dependencies of its own.
 
 ## Development handoff
 

@@ -39,6 +39,6 @@ Vitest emette un avviso non bloccante sulle config TS con sintassi ESM caricate 
 
 ## Note operative
 
-- Per le prove si usa il `node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget` (TypeScript 7.0.2, Vitest 5.1.0) come `-ToolsNodeModulesPath`. Il ciclo completo di regressione dura circa 4 minuti.
+- Strumenti e baseline stanno fuori dall'area degli agenti, in `C:\Users\Utente\TesiEvaluatorTools`: `tools\node_modules` (TypeScript 7.0.2, Vitest 5.1.0, copiati da BenchmarkTarget) è il `-ToolsNodeModulesPath`, `baseline-ddf08e8` (estratta con `git archive ddf08e8`) è il `-BaselinePath`. Non usare il `node_modules` o il BenchmarkTarget del repository principale: Vitest vi scriverebbe le cache, e le cache contengono i moduli trasformati dei test riservati. L'evaluator passa sempre `--cache=false --fsModuleCache=false`. Il ciclo completo di regressione dura circa 4 minuti.
 - Distinguere sempre fallimento della submission da errore dell'evaluator, e test falliti da test non eseguiti.
 - Le fixture violanti vanno validate eseguendo l'intera suite del task e verificando che fallisca soltanto il controllo previsto.

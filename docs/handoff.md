@@ -4,10 +4,10 @@
 
 - Data: 7 novembre 2026.
 - Responsabile operativo successivo: Claude.
-- Commit di riferimento: `042db36` (`test: add acceptance and control-matrix tests through the
-  orchestrator`), piu la riconciliazione documentale finale (da committare). Il passaggio
-  iniziale era su `5cbc11a`.
-- Working tree: pulito a `042db36`. Dopo la riconciliazione sono modificati solo documenti.
+- Commit di riferimento: `6c33e78` (riconciliazione documentale), piu l'intervento 1 (da committare).
+  Il passaggio iniziale era su `5cbc11a`.
+- Working tree: pulito a `6c33e78`. L'intervento 1 modifica `TestPhases.psm1`, `ManifestCommon.psm1`,
+  `Test-Acceptance.ps1` e la documentazione.
 - Scopo: permettere a Claude di proseguire senza perdere il contesto e a Codex
   di recuperare lo stato effettivo quando tornera sul repository.
 
@@ -218,8 +218,72 @@ autorizzazione:
 3. congelare il manifest dell'esperimento con le versioni degli strumenti;
 4. avviare le valutazioni ufficiali.
 
-Nota: Vitest non e installato in questo repository; per le prove si e usato
-`node_modules` di `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
+## Analisi generale e intervento 1 (7 novembre 2026)
+
+Un'analisi in sola lettura del progetto ha individuato problemi da risolvere prima della
+sperimentazione (rapporto: `C:\Users\Utente\.claude\plans\ticklish-meandering-sutton.md`).
+
+L'intervento 1 e stato autorizzato ed eseguito:
+
+- **Fuga dei test riservati.** Le cache di Vitest nel `node_modules` di BenchmarkTarget, nel
+  repository principale e quindi accessibili agli agenti, contenevano:
+  - `.vite`: esiti e titoli dei test riservati;
+  - `.vitest-cache`: i moduli trasformati, cioe il codice dei test riservati.
+
+  Entrambe sono state eliminate su autorizzazione. Una ricerca successiva nel repository principale
+  non trova piu riferimenti, salvo quanto descritto nel punto seguente.
+- **Riferimenti ancora presenti nel repository principale, non toccati.**
+  `docs/benchmark/B2-progettazione-task.md` (tracciato da Git) descrive i controlli riservati con
+  ID, input ed esito atteso. Decisione dell'utente (8 novembre 2026): nessun intervento. Gli
+  agenti lavoreranno leggendo soltanto il progetto sandbox della libreria TypeScript e non
+  dovrebbero avere accesso a `docs/`. Se questa condizione cambia, il documento torna a essere una
+  fuga di specifica.
+- **Copie di prova nella TEMP dell'utente.** Le copie dei test riservati lasciate nello scratchpad di
+  Claude dalle prove di mutazione sono state eliminate su autorizzazione, l'8 novembre 2026. Sono
+  state rimosse prima le junction verso il `node_modules` di BenchmarkTarget, senza attraversarle.
+- **Strumenti e baseline dedicati** in `C:\Users\Utente\TesiEvaluatorTools`:
+  - `tools\node_modules`: copia senza cache;
+  - `baseline-ddf08e8`: `git archive` del commit dichiarato.
+
+  Sono questi i percorsi da passare all'evaluator. Entrambi i manifest risultano coerenti con i
+  nuovi percorsi.
+- **Cache di Vitest disattivate** (`--cache=false --fsModuleCache=false`) in `TestPhases.psm1` e
+  `ManifestCommon.psm1`. In `Test-Acceptance.ps1` e stata aggiunta un'asserzione che verifica che
+  le run non scrivano cache.
+
+Verifiche eseguite con i nuovi percorsi:
+
+- regressione completa superata. Asserzioni superate per script:
+
+  | Script | Asserzioni |
+  | --- | ---: |
+  | Accettazione | 20 |
+  | Matrice (39 fixture) | 40 |
+  | Orchestratore | 34 |
+  | Validazione dei report | 33 |
+  | Fasi di test | 25 |
+  | Build | 29 |
+  | Ingresso | 44 |
+  | Riepilogo | 56 |
+
+- entrambi i manifest coerenti;
+- dopo la regressione, nessuna cache negli strumenti ne nel repository principale e nessun residuo
+  in TEMP.
+
+Controprova: togliendo i flag da `TestPhases.psm1` in una copia temporanea, fallisce esattamente la
+nuova asserzione. I flag in `ManifestCommon.psm1` (strumenti dei manifest) non hanno un test dedicato.
+
+Nota: la prima estrazione con `git archive` aveva convertito i fine riga in CRLF (`core.autocrlf=true`).
+I manifest non se ne accorgono, perche normalizzano i fine riga, ma cambiano l'hash del lock file nel
+riepilogo e l'helper dei test. La baseline va quindi estratta con
+`git -c core.autocrlf=false archive ddf08e8 BenchmarkTarget`.
+
+Interventi successivi proposti, ancora da autorizzare:
+
+2. controllo delle versioni degli strumenti prima della run;
+3. sonde sulle forme equivalenti di T5-R01;
+4. regole per gli agenti;
+5. prova pilota.
 
 ## Verifiche richieste alla ripresa
 

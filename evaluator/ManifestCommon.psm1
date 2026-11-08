@@ -183,7 +183,9 @@ function Invoke-Vitest {
     try {
         $ErrorActionPreference = 'Continue'
         foreach ($key in $variables.Keys) { [System.Environment]::SetEnvironmentVariable($key, $variables[$key]) }
-        $stdout = & $vitestCommand @Arguments 2>$null
+        # Nessuna cache: altrimenti Vitest scrive nelle dipendenze canoniche (node_modules/.vite e
+        # .vitest-cache) risultati e moduli trasformati, compresi quelli dei test riservati.
+        $stdout = & $vitestCommand @Arguments '--cache=false' '--fsModuleCache=false' 2>$null
         $exitCode = $LASTEXITCODE
     }
     finally {
