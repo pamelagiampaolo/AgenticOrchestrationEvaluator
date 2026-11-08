@@ -415,10 +415,58 @@ sono ricomparse `.vite` e `.vitest-cache`, ma non vengono dal valutatore:
 Le ha prodotte un'esecuzione dei test pubblici nel repository principale; nello stesso momento era
 attiva una sessione Codex. Non sono state toccate.
 
+## Pilota del valutatore con soluzioni complete (8 novembre 2026)
+
+Una prova pilota con agenti reali non e ancora possibile: l'harness del repository principale non
+collega l'agente all'orchestratore (P5). E stato quindi eseguito un pilota del solo valutatore.
+
+**Soluzioni usate.** Claude ha scritto una soluzione completa per ciascun task T1–T6, ognuna sulla
+baseline originale come richiedono le specifiche.
+
+- Partono dalle specifiche pubbliche e dalla baseline. Per T5 era noto il controllo T5-R01.
+- Non sono soluzioni di agenti sperimentali.
+- Stanno nello scratchpad di Claude, fuori da entrambi i repository, perche AGENTS.md del progetto
+  principale vieta di anticipare le soluzioni.
+
+**Esecuzione.** Ogni soluzione e stata valutata con `Invoke-Evaluation.ps1`, lanciato come processo
+separato, con gli strumenti e la baseline di `C:\repos\TesiEvaluatorTools`.
+
+Esiti (prima esecuzione):
+
+| Task | Esito | Pubblici | Riservati | Build | Suite pubblica | Suite riservata |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| T1 | `passed` | 31/31 | 3/3 | 294 ms | 994 ms | 694 ms |
+| T2 | `passed` | 31/31 | 3/3 | 288 ms | 1027 ms | 712 ms |
+| T3 | `passed` | 30/30 | 3/3 | 294 ms | 1011 ms | 700 ms |
+| T4 | `passed` | 31/31 | 3/3 | 278 ms | 988 ms | 703 ms |
+| T5 | `passed` | 30/30 | 3/3 | 284 ms | 509 ms | 802 ms |
+| T6 | `passed` | 26/26 | 4/4 | 294 ms | 531 ms | 829 ms |
+
+Ogni valutazione completa dura 3–4 secondi.
+
+- **Ripetizione.** Una seconda esecuzione di tutte le soluzioni da gli stessi esiti e conteggi; i
+  tempi variano di pochi millisecondi.
+- **Copia realistica.** La soluzione T6 con `node_modules` (1145 file) e `dist` da lo stesso esito.
+  Il manifest della submission registra i due elementi come esclusi e presenti; l'archivio non li
+  contiene.
+
+Cosa ne segue:
+
+- **Soluzioni corrette.** Per ogni task una soluzione corretta e completa ottiene `passed` su
+  entrambe le suite.
+- **Tempi.** Le fasi usano meno del 2% dei limiti (60, 120 e 120 s). I limiti restano da confermare
+  con soluzioni di agenti: test lenti o cicli infiniti sono possibili solo li.
+- **Riepilogo.** Lo schema v1 e prodotto e validato in tutte le run.
+
+Le run del pilota e la copia di `node_modules` sono state rimosse dallo scratchpad. Le soluzioni
+sono conservate in `scratchpad\pilota\T1..T6`.
+
 Interventi successivi proposti, ancora da autorizzare:
 
-4. regole per gli agenti;
-5. prova pilota.
+4. regole per gli agenti: prompt per l'harness del repository principale (copia meccanica della
+   baseline fuori da `C:\repos`, nome con architettura, task e run), preparato in chat l'8
+   novembre 2026;
+5. prova pilota con un agente reale, quando l'harness sara collegato.
 
 ## Verifiche richieste alla ripresa
 
