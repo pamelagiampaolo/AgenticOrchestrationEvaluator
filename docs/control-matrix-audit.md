@@ -13,7 +13,7 @@
   iterazioni completate. `Presente` non significa `validato` in assenza di una
   prova positiva e negativa registrata.
 - Aggiornamento finale (7 novembre 2026, riconciliazione documentale): suite
-  congelate nei manifest `reserved-1` e `public-1` e matrice eseguita attraverso
+  congelate nei manifest `reserved-1` (ora `reserved-2`) e `public-1` e matrice eseguita attraverso
   l'orchestratore (sezione "Verifica attraverso l'orchestratore"). Le sezioni
   storiche sono conservate e annotate dove lo stato e cambiato.
 
@@ -30,7 +30,7 @@
 
 Ogni controllo e ora validato individualmente con una fixture conforme, una
 fixture con violazione mirata e una prova runtime del motivo discriminante. La
-matrice e congelata in `manifests/reserved-suite.manifest.json` (`reserved-1`).
+matrice e congelata in `manifests/reserved-suite.manifest.json` (`reserved-2`).
 Viene eseguita attraverso il runner generale da
 `evaluator/tests/Test-ControlMatrix.ps1`.
 
@@ -50,7 +50,7 @@ Viene eseguita attraverso il runner generale da
 | T4-R01 | Sospendere un prodotto inesistente fallisce senza mutazioni | `reserved/t4-r01.test.ts` | `fixtures/controls/T4/R01/{compliant,violating}` | Validato: la conforme supera l'intera suite T4; la violante sospende `P-001` prima di emettere `PRODUCT_NOT_FOUND`, supera T4-R02/R03 e fallisce soltanto T4-R01 per lo stato osservabile modificato |
 | T4-R02 | Un ordine misto con prodotto sospeso fallisce atomicamente | `reserved/t4-r02.test.ts` | `fixtures/controls/T4/R02/{compliant,violating}` | Validato: la conforme supera l'intera suite T4; la violante applica la prima riga prima di rilevare il prodotto sospeso, supera T4-R01/R03 e fallisce soltanto T4-R02 lasciando `P-002` a `4` con l'ordine ancora `draft` |
 | T4-R03 | La sospensione successiva non altera un ordine storico confermato | `reserved/t4-r03.test.ts` | `fixtures/controls/T4/R03/{compliant,violating}` | Validato: la conforme supera l'intera suite T4; la violante riporta a `draft` gli ordini confermati contenenti il prodotto sospeso, supera T4-R01/R02 e fallisce soltanto T4-R03 in `getOrder` e `listOrders`, lasciando correttamente la scorta a `4` |
-| T5-R01 | La logica applicativa dipende dai contratti, senza persistenza concreta interna | `reserved/t5-r01.test.ts` | `fixtures/controls/T5/R01/{compliant,violating}` con varianti interne | Validato con AST TypeScript 7: due forme conformi passano; la violante fallisce soltanto con `direct-persistence-field:ordersById` |
+| T5-R01 | La logica applicativa dipende dai contratti, senza persistenza concreta interna | `reserved/t5-r01.test.ts` | `fixtures/controls/T5/R01/{compliant,violating}` con varianti interne | Validato con AST TypeScript 7. In `reserved-2` (8 novembre 2026) accetta forme equivalenti: 10 conformi passano, 4 violanti falliscono (vedi "T5-R01: forme equivalenti") |
 | T5-R02 | Factory e logica usano realmente tutti i repository sostitutivi ricevuti | `reserved/t5-r02.test.ts` | `fixtures/controls/T5/R02/{compliant,violating}` | Validato: la conforme usa e aggiorna i tre doppi; la violante conferma internamente ma lascia scorta e ordini sostitutivi invariati e i tre flag di uso falsi |
 | T5-R03 | Errori e ordinamenti restano invariati dopo il refactoring | `reserved/t5-r03.test.ts` | `fixtures/controls/T5/R03/{compliant,violating}` | Validato: la conforme preserva errore, atomicita e ordinamenti; la violante preserva errore e atomicita ma fallisce soltanto i due ordinamenti deterministici |
 | T6-R01 | Ordine multiprodotto produce quantita e stato globali corretti | `reserved/t6-r01.test.ts` | `fixtures/controls/T6/R01/{compliant,violating}` | Validato: la conforme supera l'intera suite T6; la violante ignora l'ultima linea soltanto negli ordini multiprodotto, supera T6-R02/R03/R04 e fallisce soltanto T6-R01 lasciando `P-003` inevaso e la relativa scorta a `10` |
@@ -160,7 +160,7 @@ costruito nei Passi 2-8 (vedi `docs/handoff.md`).
 
 ## Verifica attraverso l'orchestratore (Passo 8, 7 novembre 2026)
 
-`evaluator/tests/Test-ControlMatrix.ps1` esegue tutte le 39 fixture con l'orchestratore reale.
+`evaluator/tests/Test-ControlMatrix.ps1` esegue tutte le fixture (39 al Passo 8, 50 dal 8 novembre 2026) con l'orchestratore reale.
 Osservato:
 
 - 28 fixture soddisfano la proprieta forte: la conforme supera l'intera suite riservata del task e
@@ -186,17 +186,17 @@ Stato al 7 novembre 2026.
 
 Verificato:
 
-- tutti i 19 controlli e tutte le 39 fixture sono stati eseguiti attraverso
+- tutti i 19 controlli e tutte le 50 fixture sono stati eseguiti attraverso
   l'orchestratore, con build completa (typecheck ed emissione);
 - i report JSON di Vitest sono stati validati rispetto ai manifest;
-- sono congelati gli hash delle suite (`reserved-1`, `public-1`), gli exit code
+- sono congelati gli hash delle suite (`reserved-2`, `public-1`), gli exit code
   e lo schema v1 del riepilogo;
 - le versioni di Node, TypeScript e Vitest sono congelate in `toolchain-1` e
   verificate prima di ogni run (intervento 2, 8 novembre 2026).
 
 Ancora aperto:
 
-- 11 fixture sono validate solo sul proprio controllo (deroga accettata);
+- 22 fixture sono validate solo sul proprio controllo (deroga accettata; 14 sono di T5-R01);
 - per T3 i controlli riservati non intercettano il difetto della baseline
   coperto da T3-P02 (documentato);
 - le fixture verificano che i controlli discriminino, non che una soluzione reale

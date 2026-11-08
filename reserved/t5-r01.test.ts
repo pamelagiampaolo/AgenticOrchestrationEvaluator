@@ -48,11 +48,17 @@ test("T5-R01 application logic depends on repository contracts", () => {
   }
 });
 
+type Declarations = {
+  interfaces: Map<string, ts.InterfaceDeclaration>;
+  typeAliases: Map<string, ts.TypeAliasDeclaration>;
+  classes: Map<string, ts.ClassDeclaration>;
+};
+
 function inspectSources(sourceFiles: readonly ts.SourceFile[]): string[] {
   const violations: string[] = [];
   const declarations = collectNamedDeclarations(sourceFiles);
 
-  inspectContracts(declarations.interfaces, violations);
+  inspectContracts(declarations, violations);
   inspectConcreteRepositories(declarations.classes, violations);
   inspectFactory(sourceFiles, violations);
 
@@ -60,35 +66,102 @@ function inspectSources(sourceFiles: readonly ts.SourceFile[]): string[] {
   if (applicationService === undefined) {
     violations.push("missing-application-service");
   } else {
-    inspectApplicationService(applicationService, violations);
+    inspectApplicationService(applicationService, declarations.classes, violations);
   }
 
   return [...new Set(violations)].sort();
 }
 
-function inspectContracts(
-  interfaces: ReadonlyMap<string, ts.InterfaceDeclaration>,
-  violations: string[],
-): void {
+// Un contratto puo' essere un'interfaccia (anche con operazioni ereditate tramite extends da
+// interfacce o alias del progetto) oppure un alias di tipo oggetto, eventualmente un'intersezione.
+function inspectContracts(declarations: Declarations, violations: string[]): void {
   for (const [contractName, requiredOperations] of requiredContracts) {
-    const contract = interfaces.get(contractName);
-    if (contract === undefined) {
+    const operations = contractOperations(contractName, declarations, new Set());
+    if (operations === undefined) {
       violations.push(`missing-contract:${contractName}`);
       continue;
     }
 
-    const operations = new Set(
-      contract.members
-        .filter(isCallableInterfaceMember)
-        .map((member) => member.name)
-        .filter(ts.isIdentifier)
-        .map((name) => name.text),
-    );
     for (const operation of requiredOperations) {
       if (!operations.has(operation)) {
         violations.push(`missing-operation:${contractName}.${operation}`);
       }
     }
+  }
+}
+
+function contractOperations(
+  name: string,
+  declarations: Declarations,
+  visited: Set<string>,
+): Set<string> | undefined {
+  if (visited.has(name)) {
+    return new Set();
+  }
+  visited.add(name);
+
+  const contractInterface = declarations.interfaces.get(name);
+  if (contractInterface !== undefined) {
+    const operations = callableMemberNames(contractInterface.members);
+    for (const clause of contractInterface.heritageClauses ?? []) {
+      if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
+        continue;
+      }
+      for (const inherited of clause.types) {
+        if (ts.isIdentifier(inherited.expression)) {
+          mergeInto(operations, contractOperations(inherited.expression.text, declarations, visited));
+        }
+      }
+    }
+    return operations;
+  }
+
+  const alias = declarations.typeAliases.get(name);
+  if (alias !== undefined) {
+    return typeNodeOperations(alias.type, declarations, visited);
+  }
+
+  return undefined;
+}
+
+function typeNodeOperations(
+  type: ts.TypeNode,
+  declarations: Declarations,
+  visited: Set<string>,
+): Set<string> {
+  if (ts.isTypeLiteralNode(type)) {
+    return callableMemberNames(type.members);
+  }
+  if (ts.isParenthesizedTypeNode(type)) {
+    return typeNodeOperations(type.type, declarations, visited);
+  }
+  const operations = new Set<string>();
+  if (ts.isIntersectionTypeNode(type)) {
+    for (const part of type.types) {
+      mergeInto(operations, typeNodeOperations(part, declarations, visited));
+    }
+    return operations;
+  }
+  const referenced = typeReferenceName(type);
+  if (referenced !== undefined) {
+    mergeInto(operations, contractOperations(referenced, declarations, visited));
+  }
+  return operations;
+}
+
+function callableMemberNames(members: readonly ts.TypeElement[]): Set<string> {
+  return new Set(
+    members
+      .filter(isCallableInterfaceMember)
+      .map((member) => member.name)
+      .filter(ts.isIdentifier)
+      .map((name) => name.text),
+  );
+}
+
+function mergeInto(target: Set<string>, source: ReadonlySet<string> | undefined): void {
+  for (const value of source ?? []) {
+    target.add(value);
   }
 }
 
@@ -142,7 +215,12 @@ function inspectFactory(
     }
   });
 
-  if (typeReferenceName(factory.returnType) !== "InventoryManagement") {
+  // Senza annotazione il tipo e' inferito (e verificato dai test pubblici); si segnala soltanto un
+  // tipo di ritorno dichiarato diverso.
+  if (
+    factory.returnType !== undefined &&
+    typeReferenceName(factory.returnType) !== "InventoryManagement"
+  ) {
     violations.push("factory-return-type");
   }
 }
@@ -186,16 +264,65 @@ function findFactory(sourceFiles: readonly ts.SourceFile[]): FactoryShape | unde
   return undefined;
 }
 
+// La logica applicativa e' InventoryManagement piu le classi del progetto a cui delega tramite i
+// propri campi (per esempio una facciata con un servizio interno): a tutte si applicano le stesse
+// regole, e le dipendenze dai contratti possono trovarsi in una qualunque di esse.
 function inspectApplicationService(
   applicationService: ts.ClassDeclaration,
+  classes: ReadonlyMap<string, ts.ClassDeclaration>,
   violations: string[],
 ): void {
   const dependencyTypes = new Set<string>();
+  const inspected = new Set<ts.ClassDeclaration>();
+  const pending = [applicationService];
 
-  for (const member of applicationService.members) {
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (inspected.has(current)) {
+      continue;
+    }
+    inspected.add(current);
+    for (const delegateName of inspectApplicationClass(current, dependencyTypes, violations)) {
+      const delegate = classes.get(delegateName);
+      if (delegate !== undefined && !concreteRepositories.has(delegateName)) {
+        pending.push(delegate);
+      }
+    }
+  }
+
+  for (const contractName of requiredContracts.keys()) {
+    if (!dependencyTypes.has(contractName)) {
+      violations.push(`missing-contract-dependency:${contractName}`);
+    }
+  }
+}
+
+// Ispeziona una classe della logica applicativa e restituisce i nomi dei tipi dei suoi campi di
+// istanza, per seguire le deleghe. I membri statici non sono stato dell'istanza: una costante
+// statica non e' un archivio, e un metodo statico che crea i repository in memoria fa parte della
+// composizione predefinita come il costruttore.
+function inspectApplicationClass(
+  applicationClass: ts.ClassDeclaration,
+  dependencyTypes: Set<string>,
+  violations: string[],
+): string[] {
+  const fieldTypes: string[] = [];
+  const recordField = (type: ts.TypeNode | undefined, initializer: ts.Expression | undefined) => {
+    const name = typeReferenceName(type) ?? constructedClassName(initializer);
+    if (name !== undefined) {
+      fieldTypes.push(name);
+    }
+  };
+
+  for (const member of applicationClass.members) {
+    if (isStaticMember(member)) {
+      continue;
+    }
+
     if (ts.isPropertyDeclaration(member)) {
       inspectStateMember(member.name, member.type, member.initializer, violations);
       addRepositoryDependency(member.type, dependencyTypes);
+      recordField(member.type, member.initializer);
       continue;
     }
 
@@ -206,6 +333,7 @@ function inspectApplicationService(
         }
         inspectStateMember(parameter.name, parameter.type, parameter.initializer, violations);
         addRepositoryDependency(parameter.type, dependencyTypes);
+        recordField(parameter.type, parameter.initializer);
       }
       continue;
     }
@@ -213,11 +341,26 @@ function inspectApplicationService(
     inspectForbiddenConcreteConstruction(member, violations);
   }
 
-  for (const contractName of requiredContracts.keys()) {
-    if (!dependencyTypes.has(contractName)) {
-      violations.push(`missing-contract-dependency:${contractName}`);
-    }
+  return fieldTypes;
+}
+
+function isStaticMember(member: ts.ClassElement): boolean {
+  if (ts.isClassStaticBlockDeclaration(member)) {
+    return true;
   }
+  const modifiers = (member as { modifiers?: readonly ts.Node[] }).modifiers;
+  return modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword) ?? false;
+}
+
+function constructedClassName(initializer: ts.Expression | undefined): string | undefined {
+  if (
+    initializer !== undefined &&
+    ts.isNewExpression(initializer) &&
+    ts.isIdentifier(initializer.expression)
+  ) {
+    return initializer.expression.text;
+  }
+  return undefined;
 }
 
 function inspectStateMember(
@@ -325,22 +468,22 @@ function typeReferenceName(type: ts.TypeNode | undefined): string | undefined {
   return ts.isIdentifier(type.typeName) ? type.typeName.text : type.typeName.right.text;
 }
 
-function collectNamedDeclarations(sourceFiles: readonly ts.SourceFile[]): {
-  interfaces: Map<string, ts.InterfaceDeclaration>;
-  classes: Map<string, ts.ClassDeclaration>;
-} {
+function collectNamedDeclarations(sourceFiles: readonly ts.SourceFile[]): Declarations {
   const interfaces = new Map<string, ts.InterfaceDeclaration>();
+  const typeAliases = new Map<string, ts.TypeAliasDeclaration>();
   const classes = new Map<string, ts.ClassDeclaration>();
 
   for (const sourceFile of sourceFiles) {
     visit(sourceFile);
   }
 
-  return { interfaces, classes };
+  return { interfaces, typeAliases, classes };
 
   function visit(node: ts.Node): void {
     if (ts.isInterfaceDeclaration(node)) {
       interfaces.set(node.name.text, node);
+    } else if (ts.isTypeAliasDeclaration(node)) {
+      typeAliases.set(node.name.text, node);
     } else if (ts.isClassDeclaration(node) && node.name !== undefined) {
       classes.set(node.name.text, node);
     }

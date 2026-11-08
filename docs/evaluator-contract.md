@@ -176,8 +176,8 @@ Una fixture puo essere condivisa soltanto quando la relazione e dichiarata e non
 rende ambiguo quale proprieta abbia determinato il risultato.
 
 Stato reale: le fixture dei controlli seguono il layout `fixtures/controls/`
-(39 fixture; T5-R01 ha sottovarianti). La fixture smoke non e stata spostata in
-`fixtures/smoke/known-good/` e resta in `fixture/submission/`. Per 11 fixture vale
+(50 fixture; T5-R01 ha 14 sottovarianti). La fixture smoke non e stata spostata in
+`fixtures/smoke/known-good/` e resta in `fixture/submission/`. Per 22 fixture vale
 soltanto la proprieta sul proprio controllo (deroga in "Accettazione e
 isolamento").
 
@@ -190,6 +190,24 @@ T5-R01 usa l'AST TypeScript soltanto per vincoli strutturali non dimostrabili
 tramite comportamento. Non usa espressioni regolari come fonte autorevole e non
 impone nomi, disposizione dei file o dettagli implementativi non richiesti dalla
 specifica pubblica.
+
+Forme equivalenti riconosciute da `reserved-2` (8 novembre 2026), ciascuna con una
+fixture conforme:
+
+- contratti come `interface` oppure come alias di un tipo oggetto, anche intersezione;
+- operazioni ereditate con `extends` da interfacce o alias del progetto, anche generici;
+- factory senza tipo di ritorno dichiarato; un tipo dichiarato diverso da
+  `InventoryManagement` resta una violazione;
+- `InventoryManagement` come facciata. Le classi del progetto a cui delega tramite i propri
+  campi fanno parte della logica applicativa: valgono le stesse regole e le dipendenze dai
+  contratti possono stare in una qualunque di esse;
+- membri `static` esclusi. Una costante statica non e un archivio; un metodo statico che crea
+  i repository in memoria e composizione predefinita, come il costruttore. Uno stato statico
+  condiviso tra istanze farebbe fallire T5-P02.
+
+Limite residuo: un campo di istanza con una costante `Set`, `Map` o array e ancora
+segnalato come persistenza diretta. Con la sola analisi sintattica non si distingue da un
+archivio.
 
 Ogni controllo AST deve essere accompagnato da casi equivalenti scritti in forme
 TypeScript diverse, per dimostrare che il controllo riconosce il significato e
@@ -497,7 +515,7 @@ Risultati osservati con TypeScript 7.0.2 e Vitest 5.1.0 reali (`evaluator/tests/
 - Interruzione della run: nessun riepilogo scritto, archivio e manifest integri, lo stesso `RunId`
   non e riutilizzabile, la submission si rivaluta con un nuovo `RunId`. La copia di lavoro della run
   interrotta resta su disco e va rimossa manualmente.
-- Matrice dei controlli (39 fixture attraverso l'orchestratore): vedi `docs/control-matrix-audit.md`.
+- Matrice dei controlli (50 fixture attraverso l'orchestratore): vedi `docs/control-matrix-audit.md`.
 
 Decisioni dell'utente sui limiti verificati (7 novembre 2026):
 
@@ -506,7 +524,7 @@ Decisioni dell'utente sui limiti verificati (7 novembre 2026):
   valutatore non lo rileva (esito `passed` nell'esperimento). La mitigazione e organizzativa: agli
   agenti sara vietato modificare `node_modules`; intervengono soltanto sul progetto. Resta un limite
   da dichiarare: le run successive userebbero dipendenze eventualmente alterate.
-- **Fixture validate solo sul proprio controllo: accettato.** Per T2-R03, T5-R01 (tre varianti),
+- **Fixture validate solo sul proprio controllo: accettato.** Per T2-R03, T5-R01 (tutte le varianti),
   T5-R02, T5-R03 e T6-R04 vale la proprieta "la conforme supera il proprio controllo e la violante
   lo fallisce per il motivo previsto", non quella sull'intera suite del task. Ogni controllo resta
   dimostrato discriminante; non si riscrivono le fixture.
@@ -554,7 +572,7 @@ Lo stato e quello del 7 novembre 2026.
   (`public-1`);
 - manifest dei test pubblici per task: congelato nello stesso file;
 - manifest dei test riservati per task: congelato in
-  `manifests/reserved-suite.manifest.json` (`reserved-1`);
+  `manifests/reserved-suite.manifest.json` (`reserved-2`);
 - elenco e conteggio degli identificatori attesi: congelati nei due manifest;
 - esclusioni comuni applicabili a T6: congelate nel manifest pubblico (6 test);
 - versioni degli strumenti: congelate in `manifests/toolchain.manifest.json`
@@ -584,7 +602,7 @@ Con questo contratto sono approvati:
 Erano lasciati da determinare nei passi successivi:
 
 - inventario definitivo e conteggi canonici delle suite: determinati nei manifest
-  `public-1` e `reserved-1`;
+  `public-1` e `reserved-1`, poi `reserved-2`;
 - versioni ufficiali dell'ambiente dopo le prove pilota: ancora aperto;
 - versione definitiva dello schema JSON dopo l'uso del runner reale: la v1 e
   prodotta dall'orchestratore, ma la versione definitiva attende le prove pilota;

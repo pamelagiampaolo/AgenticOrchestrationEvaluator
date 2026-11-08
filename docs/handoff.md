@@ -33,7 +33,7 @@ esplicita dell'utente.
   eseguite per verificare che ciascuna violazione fallisse soltanto il controllo
   previsto.
 
-- Manifest congelati: suite riservata (`reserved-1`) e baseline piu suite pubbliche
+- Manifest congelati: suite riservata (`reserved-2`) e baseline piu suite pubbliche
   (`public-1`).
 - Evaluator locale completo (Passi 2-8): ingresso, build, suite pubblica e
   riservata, validazione dei report e riepilogo validato con lo schema. E coperto
@@ -331,8 +331,9 @@ riferimenti ai test riservati e non e stato creato dal valutatore. Non e stato t
 
 ## Intervento 3: sonde sulle forme equivalenti di T5-R01 (8 novembre 2026)
 
-Le sonde sono in `fixtures/probes/T5-R01/<forma>`. Sono soluzioni minime per il solo controllo,
-come le fixture di T5-R01, e non fanno parte della matrice. Sono state eseguite attraverso
+Le sonde erano in `fixtures/probes/T5-R01/<forma>`, fuori dalla matrice; dopo la correzione sono
+diventate fixture conformi (sezione seguente). Sono soluzioni minime per il solo controllo, come
+le fixture di T5-R01. Sono state eseguite attraverso
 l'orchestratore reale con il task T5; per confronto sono state rieseguite anche le due fixture
 conformi esistenti. Tutte compilano.
 
@@ -352,13 +353,70 @@ violazioni ci sono; il tipo e dedotto dal codice del controllo e coincide con qu
 
 Le due fixture esistenti superano ancora il controllo.
 
-**Decisione da prendere (utente):** per ogni forma respinta, correggere il controllo (nuova
-`suiteVersion` `reserved-2`, con le sonde trasformate in fixture conformi della matrice) oppure
-documentare il vincolo.
+Decisione dell'utente (8 novembre 2026): correggere il controllo per tutte e sei le forme.
+
+## Correzione di T5-R01: suite `reserved-2` (8 novembre 2026)
+
+Le modifiche a `reserved/t5-r01.test.ts` sono sei:
+
+- contratti riconosciuti anche come alias di tipo oggetto o intersezione;
+- operazioni ereditate con `extends` dalle dichiarazioni del progetto;
+- factory senza tipo di ritorno accettata; un tipo dichiarato diverso resta una violazione;
+- le classi a cui `InventoryManagement` delega tramite i propri campi sono ispezionate con le
+  stesse regole, e le dipendenze dai contratti possono stare in una qualunque di esse;
+- membri `static` esclusi dalle regole;
+- nessun nome o layout nuovo imposto.
+
+Il manifest e stato rigenerato come `reserved-2` (`ReservedManifest.psm1`). Rispetto a `reserved-1`
+cambia solo l'hash di `t5-r01.test.ts`; nomi e numero dei test sono invariati.
+
+Fixture di T5-R01 (`fixtures/controls/T5/R01/`):
+
+- **10 conformi**: le 2 esistenti piu le 8 sonde, con il nome della forma;
+- **4 violanti**: `direct-persistence` (esistente) e tre nuove, che verificano che le aperture non
+  lascino passare violazioni:
+
+| Nuova fixture violante | Cosa verifica | Violazioni |
+| --- | --- | --- |
+| `facade-direct-persistence` | il servizio interno della facciata usa `Map` proprie | 6 |
+| `instance-method-creates-repository` | un metodo di istanza crea un repository in memoria | 1 |
+| `alias-missing-operation` | in un contratto scritto come alias manca `save` | 1 |
+
+Esito osservato attraverso l'orchestratore: tutte le 10 conformi superano T5-R01 e tutte le 4
+violanti lo falliscono. Il numero di violazioni di ciascuna coincide con quello atteso.
+
+La matrice passa da 39 a 50 fixture. Le fixture validate solo sul proprio controllo passano da 11 a
+22, perche tutte quelle di T5-R01 rientrano nella deroga gia accettata.
+
+Regressione completa superata (262 s):
+
+| Script | Asserzioni |
+| --- | ---: |
+| Accettazione | 20 |
+| Matrice (50 fixture) | 51 |
+| Orchestratore | 43 |
+| Validazione dei report | 33 |
+| Fasi di test | 25 |
+| Build | 29 |
+| Ingresso | 44 |
+| Riepilogo | 56 |
+
+Entrambi i manifest sono coerenti (`reserved-2`, `public-1`). Non ci sono cache negli strumenti ne
+residui in TEMP.
+
+Nota sulle cache nel repository principale. In `C:\repos\TesiAgenticAI\BenchmarkTarget\node_modules`
+sono ricomparse `.vite` e `.vitest-cache`, ma non vengono dal valutatore:
+
+- `.vitest-cache` e stata creata alle 16:11, prima dell'avvio della regressione (16:14);
+- contengono solo i test pubblici comuni di BenchmarkTarget (`tests/public/...`), eseguiti con
+  BenchmarkTarget come radice;
+- non c'e alcun riferimento ai test riservati o al repository del valutatore.
+
+Le ha prodotte un'esecuzione dei test pubblici nel repository principale; nello stesso momento era
+attiva una sessione Codex. Non sono state toccate.
 
 Interventi successivi proposti, ancora da autorizzare:
 
-3. decisione sugli esiti delle sonde di T5-R01;
 4. regole per gli agenti;
 5. prova pilota.
 

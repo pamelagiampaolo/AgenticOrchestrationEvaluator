@@ -7,7 +7,7 @@ Sostituisce la precedente implementazione basata su Windows Sandbox, documentata
 
 Il punto di ingresso e `Invoke-Evaluation.ps1` (sezione "Valutazione completa").
 Gli altri script eseguono le singole fasi e servono per diagnosi e test.
-L'evaluator e stato provato con soluzioni di prova e con le 39 fixture dei
+L'evaluator e stato provato con soluzioni di prova e con le 50 fixture dei
 controlli, ma non ancora usato per prove pilota o valutazioni ufficiali.
 
 Strumenti e baseline da usare stanno fuori dal repository principale, a cui gli agenti accedono:
@@ -23,7 +23,7 @@ Il contratto, con le decisioni e i limiti accettati, e in
 
 ## Manifest della suite riservata
 
-`manifests/reserved-suite.manifest.json` (versione `reserved-1`) congela i 39 file
+`manifests/reserved-suite.manifest.json` (versione `reserved-2`) congela i 39 file
 di `reserved/` con SHA-256 (CRLF normalizzato in LF) e i 19 test attesi per task,
 piu il test smoke. Gli identificatori sono ricavati da `vitest list --json`.
 

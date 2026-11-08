@@ -123,7 +123,7 @@ function New-ReservedManifestObject {
     return [ordered]@{
         schemaVersion = 1
         suite         = 'reserved'
-        suiteVersion  = 'reserved-1'
+        suiteVersion  = 'reserved-2'
         hashing       = [ordered]@{ algorithm = 'SHA-256'; lineEndings = 'CRLF normalizzato in LF prima dell''hash' }
         files         = @(Get-ReservedFileEntries -RepositoryRoot $RepositoryRoot)
         tasks         = $tasks

@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "suite":  "reserved",
-    "suiteVersion":  "reserved-1",
+    "suiteVersion":  "reserved-2",
     "hashing":  {
                     "algorithm":  "SHA-256",
                     "lineEndings":  "CRLF normalizzato in LF prima dell\u0027hash"
@@ -61,7 +61,7 @@
                   },
                   {
                       "path":  "reserved/t5-r01.test.ts",
-                      "sha256":  "88ebbdb81b2db4d7fe0abb55c23a48d1eb9bbbb567b8bc3e440890fd83f80aad"
+                      "sha256":  "4c86deea0b7fd53f2d511a24c8dac813b416544691301cea2e134a1df905ca6d"
                   },
                   {
                       "path":  "reserved/t5-r02.test.ts",
