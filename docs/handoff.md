@@ -329,9 +329,36 @@ Nota: in `C:\repos\TesiAgenticAI\BenchmarkTarget\node_modules\.vitest` c'e solo
 `.vitest-secret-token` (37 byte, 4 novembre 2026). E precedente all'intervento 1, non contiene
 riferimenti ai test riservati e non e stato creato dal valutatore. Non e stato toccato.
 
+## Intervento 3: sonde sulle forme equivalenti di T5-R01 (8 novembre 2026)
+
+Le sonde sono in `fixtures/probes/T5-R01/<forma>`. Sono soluzioni minime per il solo controllo,
+come le fixture di T5-R01, e non fanno parte della matrice. Sono state eseguite attraverso
+l'orchestratore reale con il task T5; per confronto sono state rieseguite anche le due fixture
+conformi esistenti. Tutte compilano.
+
+| Sonda | T5-R01 | Violazioni |
+| --- | --- | --- |
+| `default-composition-in-constructor`: costruttore originale con overload; repository in memoria creati nel costruttore | superato | - |
+| `split-files`: contratti, repository e logica in file separati, riesportati | superato | - |
+| `no-factory-return-type`: factory senza tipo di ritorno | **fallito** | `factory-return-type` (dal report) |
+| `type-alias-contracts`: contratti come `type` invece di `interface` | **fallito** | 3: `missing-contract` per ogni contratto |
+| `inherited-operations`: `findById` e `list` ereditate da `ReadRepository<T>` | **fallito** | 4: `missing-operation` |
+| `facade-service`: `InventoryManagement` delega a un servizio interno con i repository | **fallito** | 3: `missing-contract-dependency` |
+| `constant-set-field`: costante `static readonly` di tipo `Set` (stati ammessi) | **fallito** | 1: `direct-persistence-field` |
+| `default-repositories-in-static-method`: composizione predefinita in un metodo statico privato | **fallito** | 3: `concrete-repository-created-in-application-method` |
+
+Il report JSON di Vitest tronca il messaggio. Per le righe con un numero e riportato solo quante
+violazioni ci sono; il tipo e dedotto dal codice del controllo e coincide con quel numero.
+
+Le due fixture esistenti superano ancora il controllo.
+
+**Decisione da prendere (utente):** per ogni forma respinta, correggere il controllo (nuova
+`suiteVersion` `reserved-2`, con le sonde trasformate in fixture conformi della matrice) oppure
+documentare il vincolo.
+
 Interventi successivi proposti, ancora da autorizzare:
 
-3. sonde sulle forme equivalenti di T5-R01;
+3. decisione sugli esiti delle sonde di T5-R01;
 4. regole per gli agenti;
 5. prova pilota.
 
