@@ -190,12 +190,12 @@ Verificato:
   l'orchestratore, con build completa (typecheck ed emissione);
 - i report JSON di Vitest sono stati validati rispetto ai manifest;
 - sono congelati gli hash delle suite (`reserved-1`, `public-1`), gli exit code
-  e lo schema v1 del riepilogo.
+  e lo schema v1 del riepilogo;
+- le versioni di Node, TypeScript e Vitest sono congelate in `toolchain-1` e
+  verificate prima di ogni run (intervento 2, 8 novembre 2026).
 
 Ancora aperto:
 
-- le versioni degli strumenti sono registrate in ogni riepilogo, ma non sono
-  congelate in un manifest dell'esperimento;
 - 11 fixture sono validate solo sul proprio controllo (deroga accettata);
 - per T3 i controlli riservati non intercettano il difetto della baseline
   coperto da T3-P02 (documentato);

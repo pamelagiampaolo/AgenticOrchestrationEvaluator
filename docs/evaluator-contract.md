@@ -320,9 +320,9 @@ registra almeno:
 - data e orari UTC di inizio e fine.
 
 Durante la definizione del contratto sono stati osservati Node `v24.17.0` e npm
-`11.13.0`. Questi valori descrivono l'ambiente corrente ma non diventano versioni
-ufficiali finche non vengono confermati dalle prove pilota e congelati nel
-manifest dell'esperimento.
+`11.13.0`. Le versioni di Node, TypeScript e Vitest sono ora congelate nel
+manifest degli strumenti (sezione seguente); le prove pilota possono ancora
+modificarle, con una nuova `toolchainVersion`.
 
 L'interrogazione dettagliata del sistema operativo non era disponibile al
 processo corrente per limiti di permesso. L'evaluator usa metodi leggibili senza
@@ -338,7 +338,37 @@ L'implementazione registra questi campi nel riepilogo:
   pubblico e non da un orchestratore esterno, che non esiste ancora;
 - in `startedAtUtc` e `finishedAtUtc`: inizio e fine.
 
-Le versioni non sono ancora congelate in un manifest dell'esperimento.
+### Manifest degli strumenti (intervento 2, 8 novembre 2026)
+
+`manifests/toolchain.manifest.json` (`toolchain-1`) fissa le versioni attese:
+
+| Strumento | Versione | Come viene rilevata |
+| --- | --- | --- |
+| Node | `v24.17.0` | `node --version` con il `PATH` del valutatore, lo stesso passato ai processi figli |
+| TypeScript | `7.0.2` | `typescript/package.json` in `-ToolsNodeModulesPath` |
+| Vitest | `5.1.0` | `vitest/package.json` in `-ToolsNodeModulesPath` |
+
+Prima di qualsiasi fase, l'orchestratore confronta le versioni rilevate con il manifest. Se una
+non coincide, non e rilevabile (`unavailable`), oppure se il manifest e illeggibile o
+incompleto, la run termina con `evaluator-error` (exit 40):
+
+- la submission non viene copiata e nessuna fase viene eseguita;
+- il riepilogo registra le versioni trovate e, nelle diagnostiche, quella attesa.
+
+Motivo: con strumenti diversi un file di test riservato puo non caricarsi (per esempio T5-R01
+usa `typescript/unstable/ast`). Senza questo controllo l'errore verrebbe attribuito alla
+submission come `test-failures`.
+
+Fuori dal controllo:
+
+- **npm**: e registrato nel riepilogo, ma il valutatore non lo usa;
+- **lock file**: e gia congelato dal manifest pubblico (`public-1`);
+- **contenuto di `node_modules`**: oltre ai due `package.json` non viene verificato (limite gia
+  accettato, sezione "Accettazione e isolamento");
+- **script dei manifest** (`New-/Test-*Manifest.ps1`) e **fasi lanciate da sole**: non applicano il
+  controllo, che riguarda soltanto l'orchestratore.
+
+Cambiare una versione richiede una nuova `toolchainVersion`, non una modifica retroattiva.
 
 ## Fase di build (Passo 4, 7 novembre 2026)
 
@@ -527,8 +557,9 @@ Lo stato e quello del 7 novembre 2026.
   `manifests/reserved-suite.manifest.json` (`reserved-1`);
 - elenco e conteggio degli identificatori attesi: congelati nei due manifest;
 - esclusioni comuni applicabili a T6: congelate nel manifest pubblico (6 test);
-- versioni degli strumenti: **non ancora congelate**. Sono registrate in ogni
-  riepilogo, ma non c'e un manifest dell'esperimento che le fissi;
+- versioni degli strumenti: congelate in `manifests/toolchain.manifest.json`
+  (`toolchain-1`: Node, TypeScript, Vitest) e verificate dall'orchestratore prima di
+  ogni run;
 - schema JSON del riepilogo: v1, prodotto e validato dall'orchestratore; da
   confermare dopo le prove pilota.
 

@@ -49,9 +49,9 @@ Valido dopo la riconciliazione del 7 novembre 2026.
 - **Nessuna prova pilota o valutazione ufficiale e stata eseguita.** Sono
   attivita successive e richiedono una nuova autorizzazione. Servono a confermare
   timeout, schema v1 e versioni dell'ambiente.
-- **Manca un manifest dell'esperimento con le versioni degli strumenti**: Node,
-  npm, TypeScript, Vitest e lock file. Le versioni sono registrate in ogni
-  riepilogo, ma non sono congelate.
+- **Versioni degli strumenti congelate** in `manifests/toolchain.manifest.json`
+  (`toolchain-1`: Node, TypeScript, Vitest), con controllo prima di ogni run
+  (intervento 2). Il lock file e congelato dal manifest pubblico; npm non e usato.
 - **Decisioni dei Passi 3-6 non ancora confermate esplicitamente dall'utente.**
   Sono descritte nel contratto, nelle sezioni "Input del comando", "Fase di
   build", "Fasi di test" e "Validazione dei report", e sono tuttora marcate
@@ -215,7 +215,8 @@ autorizzazione:
 
 1. confermare o modificare le decisioni dei Passi 3-6;
 2. eseguire prove pilota con soluzioni reali, per fissare timeout, schema e versioni;
-3. congelare il manifest dell'esperimento con le versioni degli strumenti;
+3. congelare il manifest dell'esperimento con le versioni degli strumenti (fatto con
+   l'intervento 2: `toolchain-1`);
 4. avviare le valutazioni ufficiali.
 
 ## Analisi generale e intervento 1 (7 novembre 2026)
@@ -288,9 +289,48 @@ I manifest non se ne accorgono, perche normalizzano i fine riga, ma cambiano l'h
 riepilogo e l'helper dei test. La baseline va quindi estratta con
 `git -c core.autocrlf=false archive ddf08e8 BenchmarkTarget`.
 
+## Intervento 2: controllo delle versioni degli strumenti (8 novembre 2026)
+
+Autorizzato ed eseguito:
+
+- **Manifest.** Nuovo `manifests/toolchain.manifest.json` (`toolchain-1`): Node `v24.17.0`,
+  TypeScript `7.0.2`, Vitest `5.1.0`.
+- **Controllo.** `Test-EvaluationToolchain` in `Evaluation.psm1`, chiamato dall'orchestratore prima
+  di ogni fase. Se una versione non coincide o non e rilevabile, o se il manifest e illeggibile o
+  incompleto, l'esito e `evaluator-error` (exit 40), la submission non viene copiata e nessuna
+  fase viene eseguita.
+- **Schema invariato.** Il riepilogo registrava gia le versioni rilevate; quella attesa compare
+  nelle diagnostiche.
+- **Test.**
+  - Gli strumenti finti di `Test-Evaluation.ps1` e `Test-Acceptance.ps1` dichiarano ora le
+    versioni del manifest.
+  - In `Test-Evaluation.ps1`:
+    - eliminata l'asserzione che si aspettava `unavailable` per gli strumenti finti;
+    - aggiunte 9 asserzioni: TypeScript diverso (2), Vitest diverso, versioni assenti, Node
+      diverso e Node non rilevabile (su ambiente sintetico), manifest illeggibile, assente o
+      incompleto, strumenti reali conformi.
+
+Fuori dal controllo, come descritto nel contratto:
+- npm, che il valutatore non usa;
+- il lock file, gia congelato da `public-1`;
+- il contenuto di `node_modules`;
+- gli script dei manifest e le fasi lanciate da sole.
+
+Verifiche:
+
+- regressione completa superata (240 s): accettazione 20, matrice 40 (39 fixture), orchestratore
+  43, validazione dei report 33, fasi di test 25, build 29, ingresso 44, riepilogo 56; entrambi i
+  manifest coerenti; nessuna cache negli strumenti, nessun residuo in TEMP;
+- controprova: disattivando il controllo in una copia temporanea falliscono esattamente le 4
+  asserzioni end-to-end sugli strumenti non conformi (le 5 sulla funzione non dipendono
+  dall'orchestratore). La copia e stata rimossa.
+
+Nota: in `C:\repos\TesiAgenticAI\BenchmarkTarget\node_modules\.vitest` c'e solo
+`.vitest-secret-token` (37 byte, 4 novembre 2026). E precedente all'intervento 1, non contiene
+riferimenti ai test riservati e non e stato creato dal valutatore. Non e stato toccato.
+
 Interventi successivi proposti, ancora da autorizzare:
 
-2. controllo delle versioni degli strumenti prima della run;
 3. sonde sulle forme equivalenti di T5-R01;
 4. regole per gli agenti;
 5. prova pilota.

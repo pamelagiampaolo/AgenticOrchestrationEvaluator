@@ -101,6 +101,16 @@ strutturali: mancanti non spiegati, saltati, non previsti, duplicati, report ass
 incoerente). Le anomalie strutturali prevalgono sui test falliti. Test:
 `.\evaluator\tests\Test-ReportValidation.ps1 -ToolsNodeModulesPath <node_modules> -BaselinePath <BenchmarkTarget>`.
 
+## Manifest degli strumenti
+
+`manifests/toolchain.manifest.json` (versione `toolchain-1`) fissa Node `v24.17.0`,
+TypeScript `7.0.2` e Vitest `5.1.0`. Prima di ogni fase l'orchestratore confronta queste
+versioni con quelle rilevate: `node --version` dal `PATH` e i `package.json` di `typescript`
+e `vitest` in `-ToolsNodeModulesPath`. Se una versione non coincide, non e leggibile, o se il
+manifest e illeggibile, l'esito e `evaluator-error` (exit 40) e la submission non viene
+copiata. Le fasi lanciate da sole e gli script dei manifest non applicano il controllo. Per
+cambiare una versione serve una nuova `toolchainVersion`.
+
 ## Valutazione completa
 
 ```powershell
@@ -109,7 +119,7 @@ incoerente). Le anomalie strutturali prevalgono sui test falliti. Test:
     [-RunsRoot <dir>] [-RunId <id>] [-BuildTimeoutSeconds 60] [-PublicTimeoutSeconds 120] [-ReservedTimeoutSeconds 120] [-KeepWorkspace]
 ```
 
-Esegue ingresso, build, suite pubblica, suite riservata e validazione dei report; scrive in
+Verifica gli strumenti con il manifest degli strumenti, poi esegue ingresso, build, suite pubblica, suite riservata e validazione dei report; scrive in
 `runs/<runId>/evidence/` `evaluation-summary.json` (conteggi e messaggi generici, validato con lo
 schema) e `report-validation.json` (dettagli, anche riservati: solo per il ricercatore); stampa
 il riepilogo su stdout. Exit code: 0 `passed`, 10 `test-failures`, 11 `build-failure`, 12

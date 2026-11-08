@@ -11,8 +11,10 @@ a submission. It writes inputs, raw reports and validated evidence under `runs/`
 - `evaluator/`: local evaluator in Windows PowerShell 5.1. The entry point is
   `Invoke-Evaluation.ps1`. Tests are in `evaluator/tests/`, and usage is described
   in `evaluator/README.md`.
-- `manifests/`: frozen manifests of the reserved suite (`reserved-1`) and of the
-  baseline plus public suites (`public-1`).
+- `manifests/`: frozen manifests of the reserved suite (`reserved-1`), of the
+  baseline plus public suites (`public-1`) and of the tool versions
+  (`toolchain-1`: Node, TypeScript, Vitest). The evaluator stops with
+  `evaluator-error` before any phase if the tools do not match.
 - `schemas/`: JSON schema of the evaluation summary.
 - `reserved/`: private Vitest controls and their configurations.
 - `fixture/`: frozen submission used by the reserved smoke test.

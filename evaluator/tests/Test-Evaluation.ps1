@@ -75,11 +75,20 @@ function compareProductIds
     [System.IO.File]::WriteAllText("$Path\src\index.ts", $source)
 }
 
+$toolchain = Get-Content (Join-Path $repositoryRoot 'manifests\toolchain.manifest.json') -Raw | ConvertFrom-Json
+
+# Strumenti simulati: dichiarano le versioni del manifest degli strumenti (salvo indicazione diversa)
+# cosi' il controllo preliminare li accetta e si possono provare le fasi successive.
 function New-FakeTools {
-    param([string]$Path, [string]$VitestBody)
+    param([string]$Path, [string]$VitestBody = "@echo off`r`nexit /b 1", [string]$TypeScriptVersion = $toolchain.typescript, [string]$VitestVersion = $toolchain.vitest)
     New-Item -ItemType Directory -Force -Path "$Path\.bin" | Out-Null
     Set-Content "$Path\.bin\tsc.cmd" "@echo off`r`nexit /b 0" -Encoding ascii
     Set-Content "$Path\.bin\vitest.cmd" $VitestBody -Encoding ascii
+    foreach ($package in @(@('typescript', $TypeScriptVersion), @('vitest', $VitestVersion))) {
+        if (-not $package[1]) { continue }
+        New-Item -ItemType Directory -Force -Path "$Path\$($package[0])" | Out-Null
+        Set-Content "$Path\$($package[0])\package.json" "{ `"name`": `"$($package[0])`", `"version`": `"$($package[1])`" }" -Encoding ascii
+    }
 }
 
 $workspace = Join-Path ([System.IO.Path]::GetTempPath()) ('evaluation-test-' + [guid]::NewGuid().ToString('N'))
@@ -167,11 +176,39 @@ try {
     $result = & $evaluate $solution 'T1' $ToolsNodeModulesPath $tamperedBaseline
     Assert-That 'baseline alterata: integrity-error, exit 30, nessuna fase eseguita, riepilogo valido' ($result.outcome -eq 'integrity-error' -and $result.exitCode -eq 30 -and $result.summary.phases.build.status -eq 'not-run' -and $result.summary.integrity.suiteManifestsVerified -eq $false -and @(Test-SummaryFile -Path $result.summaryPath).Count -eq 0) "(esito: $($result.outcome); $($result.diagnostics -join ' | '))"
 
+    # --- Strumenti non conformi al manifest degli strumenti ------------------------------------------------------------------------------
+    $wrongTs = Join-Path $workspace 'tools-ts-diverso'; New-FakeTools -Path $wrongTs -TypeScriptVersion '6.0.0'
+    $runsBefore = @(Get-ChildItem $runs).Count
+    $result = Invoke-Evaluation -SubmissionPath $solution -TaskId 'T1' -BaselinePath $BaselinePath -ToolsNodeModulesPath $wrongTs -RunsRoot $runs
+    $runDirectory = Join-Path $runs $result.summary.runId
+    Assert-That 'TypeScript diverso dal manifest: evaluator-error, exit 40, nessuna fase eseguita' ($result.outcome -eq 'evaluator-error' -and $result.exitCode -eq 40 -and (@($result.summary.phases.build.status, $result.summary.phases.public.status, $result.summary.phases.reserved.status) -join ',') -eq 'not-run,not-run,not-run') "(esito: $($result.outcome); $($result.diagnostics -join ' | '))"
+    Assert-That 'TypeScript diverso: diagnostica con versione attesa e trovata, submission non copiata, riepilogo valido' ((($result.diagnostics -join ' ') -match "typescript atteso $([regex]::Escape($toolchain.typescript)), trovato 6\.0\.0") -and -not (Test-Path (Join-Path $runDirectory 'input')) -and @(Get-ChildItem $runs).Count -eq $runsBefore + 1 -and @(Test-SummaryFile -Path $result.summaryPath).Count -eq 0) "(diagnostica: $($result.diagnostics -join ' | '))"
+    $wrongVitest = Join-Path $workspace 'tools-vitest-diverso'; New-FakeTools -Path $wrongVitest -VitestVersion '5.1.1'
+    $result = Invoke-Evaluation -SubmissionPath $solution -TaskId 'T1' -BaselinePath $BaselinePath -ToolsNodeModulesPath $wrongVitest -RunsRoot $runs
+    Assert-That 'Vitest diverso dal manifest: evaluator-error con diagnostica su vitest' ($result.outcome -eq 'evaluator-error' -and $result.summary.phases.build.status -eq 'not-run' -and ($result.diagnostics -join ' ') -match 'vitest atteso') "(diagnostica: $($result.diagnostics -join ' | '))"
+    $noVersions = Join-Path $workspace 'tools-senza-versioni'; New-FakeTools -Path $noVersions -TypeScriptVersion '' -VitestVersion ''
+    $result = Invoke-Evaluation -SubmissionPath $solution -TaskId 'T1' -BaselinePath $BaselinePath -ToolsNodeModulesPath $noVersions -RunsRoot $runs
+    Assert-That 'strumenti senza versione leggibile: evaluator-error, versioni registrate come unavailable' ($result.outcome -eq 'evaluator-error' -and $result.summary.phases.build.status -eq 'not-run' -and $result.summary.environment.typescript -eq 'unavailable' -and $result.summary.environment.vitest -eq 'unavailable' -and @(Test-SummaryFile -Path $result.summaryPath).Count -eq 0) "(esito: $($result.outcome))"
+
+    # Confronto diretto: Node non si puo' sostituire nel test, quindi si passa un ambiente sintetico.
+    $toolchainPath = Join-Path $repositoryRoot 'manifests\toolchain.manifest.json'
+    $goodEnvironment = [ordered]@{ node = $toolchain.node; typescript = $toolchain.typescript; vitest = $toolchain.vitest }
+    Assert-That 'strumenti conformi: nessuna non conformita' (@(Test-EvaluationToolchain -Environment $goodEnvironment -ManifestPath $toolchainPath).Count -eq 0)
+    $oldNode = [ordered]@{ node = 'v22.11.0'; typescript = $toolchain.typescript; vitest = $toolchain.vitest }
+    $issues = @(Test-EvaluationToolchain -Environment $oldNode -ManifestPath $toolchainPath)
+    Assert-That 'Node diverso: una sola non conformita, su node' ($issues.Count -eq 1 -and $issues[0] -match 'node atteso .* trovato v22\.11\.0') "(non conformita: $($issues -join ' | '))"
+    $unavailableNode = [ordered]@{ node = 'unavailable'; typescript = $toolchain.typescript; vitest = $toolchain.vitest }
+    Assert-That 'Node non rilevabile: non conforme' (@(Test-EvaluationToolchain -Environment $unavailableNode -ManifestPath $toolchainPath).Count -eq 1)
+    $brokenManifest = Join-Path $workspace 'toolchain-rotto.json'; Set-Content $brokenManifest '{ non json' -Encoding ascii
+    $partialManifest = Join-Path $workspace 'toolchain-parziale.json'; Set-Content $partialManifest '{ "toolchainVersion": "prova", "node": "v24.17.0" }' -Encoding ascii
+    Assert-That 'manifest degli strumenti illeggibile, assente o incompleto: non conforme' (@(Test-EvaluationToolchain -Environment $goodEnvironment -ManifestPath $brokenManifest).Count -eq 1 -and @(Test-EvaluationToolchain -Environment $goodEnvironment -ManifestPath (Join-Path $workspace 'assente.json')).Count -eq 1 -and @(Test-EvaluationToolchain -Environment $goodEnvironment -ManifestPath $partialManifest).Count -eq 2)
+    Assert-That 'gli strumenti canonici reali corrispondono al manifest degli strumenti' (@(Test-EvaluationToolchain -Environment (Get-EvaluationEnvironment -ToolsNodeModulesPath $ToolsNodeModulesPath -BaselinePath $BaselinePath -RepositoryRoot $repositoryRoot) -ManifestPath $toolchainPath).Count -eq 0)
+
     # --- Vitest simulato: timeout, errore, alterazione dei file riservati ---------------------------------------------------------------
     $fakeSleep = Join-Path $workspace 'fake-sleep'; New-FakeTools -Path $fakeSleep -VitestBody "@echo off`r`nping -n 40 127.0.0.1 >nul"
     $result = Invoke-Evaluation -SubmissionPath $solution -TaskId 'T1' -BaselinePath $BaselinePath -ToolsNodeModulesPath $fakeSleep -RunsRoot $runs -PublicTimeoutSeconds 2 -ReservedTimeoutSeconds 2
     Assert-That 'timeout: outcome timeout, exit 12, fasi pubblica e riservata in timeout, conteggi nulli' ($result.outcome -eq 'timeout' -and $result.exitCode -eq 12 -and $result.summary.phases.public.status -eq 'timeout' -and $result.summary.phases.reserved.status -eq 'timeout' -and $null -eq $result.summary.publicTests) "(esito: $($result.outcome); $($result.diagnostics -join ' | '))"
-    Assert-That 'timeout: ambiente non acquisibile dichiarato unavailable e riepilogo valido' ($result.summary.environment.typescript -eq 'unavailable' -and $result.summary.environment.vitest -eq 'unavailable' -and @(Test-SummaryFile -Path $result.summaryPath).Count -eq 0)
+    Assert-That 'timeout: riepilogo valido' (@(Test-SummaryFile -Path $result.summaryPath).Count -eq 0)
     $fakeCrash = Join-Path $workspace 'fake-crash'; New-FakeTools -Path $fakeCrash -VitestBody "@echo off`r`nexit /b 1"
     $result = Invoke-Evaluation -SubmissionPath $solution -TaskId 'T1' -BaselinePath $BaselinePath -ToolsNodeModulesPath $fakeCrash -RunsRoot $runs
     Assert-That 'vitest senza report: evaluator-error, exit 40, riepilogo valido' ($result.outcome -eq 'evaluator-error' -and $result.exitCode -eq 40 -and $result.summary.phases.public.status -eq 'error' -and @(Test-SummaryFile -Path $result.summaryPath).Count -eq 0) "(esito: $($result.outcome); $($result.diagnostics -join ' | '))"

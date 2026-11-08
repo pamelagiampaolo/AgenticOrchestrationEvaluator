@@ -157,6 +157,12 @@ try {
     New-Item -ItemType Directory -Force -Path "$fakeSleep\.bin" | Out-Null
     Set-Content "$fakeSleep\.bin\tsc.cmd" "@echo off`r`nexit /b 0" -Encoding ascii
     Set-Content "$fakeSleep\.bin\vitest.cmd" "@echo off`r`nping -n 60 127.0.0.1 >nul" -Encoding ascii
+    # Versioni del manifest degli strumenti, altrimenti il controllo preliminare ferma la run prima delle fasi.
+    $toolchain = Get-Content (Join-Path $repositoryRoot 'manifests\toolchain.manifest.json') -Raw | ConvertFrom-Json
+    foreach ($package in 'typescript', 'vitest') {
+        New-Item -ItemType Directory -Force -Path "$fakeSleep\$package" | Out-Null
+        Set-Content "$fakeSleep\$package\package.json" "{ `"name`": `"$package`", `"version`": `"$($toolchain.$package)`" }" -Encoding ascii
+    }
     $interruptedId = 'run-interrotta'
     $arguments = "-NoProfile -File `"$entryScript`" -SubmissionPath `"$solution`" -TaskId T1 -BaselinePath `"$BaselinePath`" -ToolsNodeModulesPath `"$fakeSleep`" -RunsRoot `"$runs`" -RunId $interruptedId"
     $process = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -PassThru -WindowStyle Hidden

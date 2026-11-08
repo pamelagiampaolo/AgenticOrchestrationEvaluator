@@ -98,6 +98,44 @@ function Get-EvaluationEnvironment {
     }
 }
 
+<#
+.SYNOPSIS
+Confronta le versioni rilevate degli strumenti con il manifest degli strumenti.
+
+.PARAMETER Environment
+Tabella prodotta da Get-EvaluationEnvironment (chiavi `node`, `typescript`, `vitest`).
+
+.PARAMETER ManifestPath
+`manifests/toolchain.manifest.json`.
+
+.OUTPUTS
+Messaggi di non conformita' (nessuno se gli strumenti coincidono). Un manifest illeggibile o
+incompleto e' anch'esso una non conformita': senza versioni attese la run non e' affidabile.
+#>
+function Test-EvaluationToolchain {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][System.Collections.IDictionary]$Environment,
+        [Parameter(Mandatory)][string]$ManifestPath
+    )
+
+    try { $manifest = Get-Content -LiteralPath $ManifestPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop }
+    catch { return @('Manifest degli strumenti illeggibile.') }
+    if ($null -eq $manifest) { return @('Manifest degli strumenti illeggibile.') }
+    $label = 'manifest degli strumenti'
+    if ($manifest.PSObject.Properties['toolchainVersion']) { $label = "manifest degli strumenti $($manifest.toolchainVersion)" }
+
+    $issues = @()
+    foreach ($tool in 'node', 'typescript', 'vitest') {
+        $expected = $null
+        if ($manifest.PSObject.Properties[$tool]) { $expected = [string]$manifest.$tool }
+        if (-not $expected) { $issues += "Il $label non indica la versione attesa di $tool."; continue }
+        $actual = [string]$Environment[$tool]
+        if ($actual -cne $expected) { $issues += "Strumento non conforme al ${label}: $tool atteso $expected, trovato $actual." }
+    }
+    return $issues
+}
+
 function New-PhaseSummary {
     param([string]$Status = 'not-run', $DurationMs = $null, $ExitCode = $null)
     return [ordered]@{ status = $Status; durationMs = $DurationMs; exitCode = $ExitCode }
@@ -183,6 +221,7 @@ function Invoke-Evaluation {
     $publicManifestPath = Join-Path $repositoryRoot 'manifests\public-suite.manifest.json'
     $reservedManifestPath = Join-Path $repositoryRoot 'manifests\reserved-suite.manifest.json'
     $schemaPath = Join-Path $repositoryRoot 'schemas\evaluation-summary.schema.json'
+    $toolchainManifestPath = Join-Path $repositoryRoot 'manifests\toolchain.manifest.json'
 
     if (-not (Test-TaskId -TaskId $TaskId)) {
         return [pscustomobject]@{ outcome = 'invalid-input'; exitCode = (Get-EvaluationExitCode -Outcome 'invalid-input'); summary = $null; summaryPath = $null; diagnostics = @('TaskId non valido: atteso uno tra T1, T2, T3, T4, T5, T6. Nessun riepilogo prodotto.') }
@@ -206,6 +245,10 @@ function Invoke-Evaluation {
     $run = $null
 
     $environment = Get-EvaluationEnvironment -ToolsNodeModulesPath $ToolsNodeModulesPath -BaselinePath $BaselinePath -RepositoryRoot $repositoryRoot
+    # Strumenti diversi da quelli congelati: nessuna fase viene eseguita, perche' un test che non si
+    # carica per colpa degli strumenti verrebbe altrimenti attribuito alla submission.
+    $toolchainIssues = @(Test-EvaluationToolchain -Environment $environment -ManifestPath $toolchainManifestPath)
+    if ($toolchainIssues.Count -gt 0) { $evaluatorError = $true; foreach ($issue in $toolchainIssues) { $diagnostics.Add($issue) } }
     $suites = [ordered]@{ reservedSuiteVersion = 'unavailable'; publicSuiteVersion = 'unavailable'; baselineDeclaredCommit = 'unavailable' }
     try {
         $suites.reservedSuiteVersion = [string](Get-Content -LiteralPath $reservedManifestPath -Raw | ConvertFrom-Json).suiteVersion
@@ -374,4 +417,4 @@ function Invoke-Evaluation {
     return [pscustomobject]@{ outcome = $outcome; exitCode = $summary.exitCode; summary = $summary; summaryPath = $summaryPath; diagnostics = @($summary.diagnostics) }
 }
 
-Export-ModuleMember -Function Get-EvaluationEnvironment, Invoke-Evaluation
+Export-ModuleMember -Function Get-EvaluationEnvironment, Test-EvaluationToolchain, Invoke-Evaluation
