@@ -12,8 +12,8 @@ controlli, ma non ancora usato per prove pilota o valutazioni ufficiali.
 
 Strumenti e baseline da usare stanno fuori dal repository principale, a cui gli agenti accedono:
 
-- `-ToolsNodeModulesPath C:\Users\Utente\TesiEvaluatorTools\tools\node_modules`;
-- `-BaselinePath C:\Users\Utente\TesiEvaluatorTools\baseline-ddf08e8`.
+- `-ToolsNodeModulesPath C:\repos\TesiEvaluatorTools\tools\node_modules`;
+- `-BaselinePath C:\repos\TesiEvaluatorTools\baseline-ddf08e8`.
 
 Vitest viene sempre eseguito con `--cache=false --fsModuleCache=false`, perche le sue cache
 conterrebbero i moduli trasformati dei test riservati.

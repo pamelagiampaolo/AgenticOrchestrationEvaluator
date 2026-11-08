@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Cos'è questo repository
 
-Valutatore fidato e **privato** del progetto `TesiAgenticAI`. Contiene i test riservati (Vitest) e le fixture che li validano, separati dal repository principale `C:\Users\Utente\TesiAgenticAI` (la baseline valutata è `BenchmarkTarget` lì dentro; nessuno script contiene il percorso, che si passa con `-BaselinePath`). I test riservati non devono mai essere copiati nel repository principale né in aree accessibili agli agenti sperimentali.
+Valutatore fidato e **privato** del progetto `TesiAgenticAI`. Contiene i test riservati (Vitest) e le fixture che li validano, separati dal repository principale `C:\repos\TesiAgenticAI` (la baseline valutata è `BenchmarkTarget` lì dentro; nessuno script contiene il percorso, che si passa con `-BaselinePath`). I test riservati non devono mai essere copiati nel repository principale né in aree accessibili agli agenti sperimentali.
 
 `AGENTS.md` è vincolante (in italiano): un solo passo circoscritto alla volta, spiegare prima cosa si farà, verificare davvero ciò che si dichiara, **nessun commit/push/eliminazione senza autorizzazione esplicita**, suggerire un messaggio di commit a fine passo. Lo stato corrente e il prossimo passo autorizzato sono in `docs/handoff.md`: leggerlo (insieme a `docs/evaluator-contract.md`, `docs/evaluation-threat-model.md`, `docs/control-matrix-audit.md`) prima di intervenire e aggiornarlo quando cambia lo stato. La documentazione è scritta in italiano.
 
@@ -39,6 +39,6 @@ Vitest emette un avviso non bloccante sulle config TS con sintassi ESM caricate 
 
 ## Note operative
 
-- Strumenti e baseline stanno fuori dall'area degli agenti, in `C:\Users\Utente\TesiEvaluatorTools`: `tools\node_modules` (TypeScript 7.0.2, Vitest 5.1.0, copiati da BenchmarkTarget) è il `-ToolsNodeModulesPath`, `baseline-ddf08e8` (estratta con `git archive ddf08e8`) è il `-BaselinePath`. Non usare il `node_modules` o il BenchmarkTarget del repository principale: Vitest vi scriverebbe le cache, e le cache contengono i moduli trasformati dei test riservati. L'evaluator passa sempre `--cache=false --fsModuleCache=false`. Il ciclo completo di regressione dura circa 4 minuti.
+- Strumenti e baseline stanno fuori dall'area degli agenti, in `C:\repos\TesiEvaluatorTools`: `tools\node_modules` (TypeScript 7.0.2, Vitest 5.1.0, copiati da BenchmarkTarget) è il `-ToolsNodeModulesPath`, `baseline-ddf08e8` (estratta con `git archive ddf08e8`) è il `-BaselinePath`. Non usare il `node_modules` o il BenchmarkTarget del repository principale: Vitest vi scriverebbe le cache, e le cache contengono i moduli trasformati dei test riservati. L'evaluator passa sempre `--cache=false --fsModuleCache=false`. Il ciclo completo di regressione dura circa 4 minuti.
 - Distinguere sempre fallimento della submission da errore dell'evaluator, e test falliti da test non eseguiti.
 - Le fixture violanti vanno validate eseguendo l'intera suite del task e verificando che fallisca soltanto il controllo previsto.

@@ -31,7 +31,7 @@ The previous Windows Sandbox architecture is retired. It is documented in
 `docs/archive/windows-sandbox-evaluator.md`.
 
 The evaluator needs two external locations, both passed as parameters. They are
-kept in `C:\Users\Utente\TesiEvaluatorTools`, outside the main repository that
+kept in `C:\repos\TesiEvaluatorTools`, outside the main repository that
 agents can access:
 
 - `baseline-ddf08e8`: the frozen `BenchmarkTarget` baseline;

@@ -241,7 +241,7 @@ L'intervento 1 e stato autorizzato ed eseguito:
 - **Copie di prova nella TEMP dell'utente.** Le copie dei test riservati lasciate nello scratchpad di
   Claude dalle prove di mutazione sono state eliminate su autorizzazione, l'8 novembre 2026. Sono
   state rimosse prima le junction verso il `node_modules` di BenchmarkTarget, senza attraversarle.
-- **Strumenti e baseline dedicati** in `C:\Users\Utente\TesiEvaluatorTools`:
+- **Strumenti e baseline dedicati** in `C:\repos\TesiEvaluatorTools`:
   - `tools\node_modules`: copia senza cache;
   - `baseline-ddf08e8`: `git archive` del commit dichiarato.
 
@@ -250,6 +250,16 @@ L'intervento 1 e stato autorizzato ed eseguito:
 - **Cache di Vitest disattivate** (`--cache=false --fsModuleCache=false`) in `TestPhases.psm1` e
   `ManifestCommon.psm1`. In `Test-Acceptance.ps1` e stata aggiunta un'asserzione che verifica che
   le run non scrivano cache.
+- **Spostamento in `C:\repos`** (8 novembre 2026). I tre progetti sono stati spostati da
+  `C:\Users\Utente`:
+  - `C:\repos\TesiAgenticAI`;
+  - `C:\repos\TesiAgenticAI-TrustedEvaluator`, copiato a hash identici perche la cartella
+    originale era aperta;
+  - `C:\repos\TesiEvaluatorTools`.
+
+  Sono stati aggiornati la documentazione, `safe.directory` di Git e la memoria di Claude Code.
+  Gli agenti devono lavorare solo nella propria copia del progetto sandbox, mai in `C:\repos`, da
+  cui si leggerebbero i test riservati.
 
 Verifiche eseguite con i nuovi percorsi:
 

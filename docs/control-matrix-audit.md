@@ -8,7 +8,7 @@
   le fixture realmente presenti prima di modificare suite o runner.
 - Fonti: `docs/evaluator-contract.md`, `docs/evaluation-threat-model.md`,
   `reserved/`, `fixtures/` e le suite pubbliche presenti in
-  `C:\Users\Utente\TesiAgenticAI\BenchmarkTarget`.
+  `C:\repos\TesiAgenticAI\BenchmarkTarget`.
 - Natura dell'audit: ispezione statica, aggiornata con le evidenze runtime delle
   iterazioni completate. `Presente` non significa `validato` in assenza di una
   prova positiva e negativa registrata.

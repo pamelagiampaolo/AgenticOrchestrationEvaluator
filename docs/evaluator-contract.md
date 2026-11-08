@@ -495,7 +495,7 @@ Collocazione di strumenti e baseline (7 novembre 2026, dopo l'analisi generale):
   proprie cache: `.vite` con esiti e titoli dei test, `.vitest-cache` con i moduli trasformati,
   compreso il codice dei test riservati. Era un'area accessibile agli agenti.
 - Con l'autorizzazione dell'utente le due cache sono state eliminate.
-- Strumenti e baseline stanno ora in `C:\Users\Utente\TesiEvaluatorTools`, fuori dall'area degli
+- Strumenti e baseline stanno ora in `C:\repos\TesiEvaluatorTools`, fuori dall'area degli
   agenti:
   - `tools\node_modules`: copia senza cache;
   - `baseline-ddf08e8`: estratta da Git al commit dichiarato nel manifest pubblico.
