@@ -2,7 +2,7 @@
 
 ## Contesto
 
-Gli agenti sperimentali lavorano sul repository principale `TesiAgenticAI` e
+Gli agenti sperimentali lavorano sul repository principale `Agentic Orchestration Benchmark` e
 non hanno accesso a questo repository fidato, ai test riservati o alle evidenze
 prodotte dall'evaluator. I task consistono nello sviluppo di funzionalita di una
 libreria gestionale; non fanno parte di una competizione adversarial e non viene

@@ -1,6 +1,6 @@
 # Trusted Evaluator
 
-Private evaluation workspace for the `TesiAgenticAI` project.
+Private evaluation workspace for the `Agentic Orchestration Benchmark` project.
 
 The repository keeps reserved tests outside the main source repository. A
 local, controlled evaluator runs the canonical public and reserved suites against
@@ -33,7 +33,7 @@ The previous Windows Sandbox architecture is retired. It is documented in
 `docs/archive/windows-sandbox-evaluator.md`.
 
 The evaluator needs two external locations, both passed as parameters. They are
-kept in `C:\repos\TesiEvaluatorTools`, outside the main repository that
+kept in `C:\repos\AgenticOrchestrationTools`, outside the main repository that
 agents can access:
 
 - `baseline-ddf08e8`: the frozen `BenchmarkTarget` baseline;

@@ -3,7 +3,7 @@
 ## Scopo del progetto
 
 Questo repository contiene il valutatore fidato e privato del progetto
-`TesiAgenticAI`. Mantiene separati i controlli riservati dal repository principale
+`Agentic Orchestration Benchmark`. Mantiene separati i controlli riservati dal repository principale
 e produce, per ogni valutazione, report, log ed evidenze di integrita sotto
 `runs/`.
 

@@ -242,7 +242,7 @@ L'intervento 1 e stato autorizzato ed eseguito:
 - **Copie di prova nella TEMP dell'utente.** Le copie dei test riservati lasciate nello scratchpad di
   Claude dalle prove di mutazione sono state eliminate su autorizzazione, l'8 novembre 2026. Sono
   state rimosse prima le junction verso il `node_modules` di BenchmarkTarget, senza attraversarle.
-- **Strumenti e baseline dedicati** in `C:\repos\TesiEvaluatorTools`:
+- **Strumenti e baseline dedicati** in `C:\repos\AgenticOrchestrationTools`:
   - `tools\node_modules`: copia senza cache;
   - `baseline-ddf08e8`: `git archive` del commit dichiarato.
 
@@ -253,10 +253,10 @@ L'intervento 1 e stato autorizzato ed eseguito:
   le run non scrivano cache.
 - **Spostamento in `C:\repos`** (8 novembre 2026). I tre progetti sono stati spostati da
   `C:\Users\Utente`:
-  - `C:\repos\TesiAgenticAI`;
-  - `C:\repos\TesiAgenticAI-TrustedEvaluator`, copiato a hash identici perche la cartella
+  - `C:\repos\AgenticOrchestrationBenchmark`;
+  - `C:\repos\AgenticOrchestrationEvaluator`, copiato a hash identici perche la cartella
     originale era aperta;
-  - `C:\repos\TesiEvaluatorTools`.
+  - `C:\repos\AgenticOrchestrationTools`.
 
   Sono stati aggiornati la documentazione, `safe.directory` di Git e la memoria di Claude Code.
   Gli agenti devono lavorare solo nella propria copia del progetto sandbox, mai in `C:\repos`, da
@@ -325,7 +325,7 @@ Verifiche:
   asserzioni end-to-end sugli strumenti non conformi (le 5 sulla funzione non dipendono
   dall'orchestratore). La copia e stata rimossa.
 
-Nota: in `C:\repos\TesiAgenticAI\BenchmarkTarget\node_modules\.vitest` c'e solo
+Nota: in `C:\repos\AgenticOrchestrationBenchmark\benchmark\BenchmarkTarget\node_modules\.vitest` c'e solo
 `.vitest-secret-token` (37 byte, 4 novembre 2026). E precedente all'intervento 1, non contiene
 riferimenti ai test riservati e non e stato creato dal valutatore. Non e stato toccato.
 
@@ -404,7 +404,7 @@ Regressione completa superata (262 s):
 Entrambi i manifest sono coerenti (`reserved-2`, `public-1`). Non ci sono cache negli strumenti ne
 residui in TEMP.
 
-Nota sulle cache nel repository principale. In `C:\repos\TesiAgenticAI\BenchmarkTarget\node_modules`
+Nota sulle cache nel repository principale. In `C:\repos\AgenticOrchestrationBenchmark\benchmark\BenchmarkTarget\node_modules`
 sono ricomparse `.vite` e `.vitest-cache`, ma non vengono dal valutatore:
 
 - `.vitest-cache` e stata creata alle 16:11, prima dell'avvio della regressione (16:14);
@@ -429,7 +429,7 @@ baseline originale come richiedono le specifiche.
   principale vieta di anticipare le soluzioni.
 
 **Esecuzione.** Ogni soluzione e stata valutata con `Invoke-Evaluation.ps1`, lanciato come processo
-separato, con gli strumenti e la baseline di `C:\repos\TesiEvaluatorTools`.
+separato, con gli strumenti e la baseline di `C:\repos\AgenticOrchestrationTools`.
 
 Esiti (prima esecuzione):
 
