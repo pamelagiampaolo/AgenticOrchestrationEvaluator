@@ -1,48 +1,52 @@
-# Trusted Evaluator
+# Valutatore fidato
 
-Private evaluation workspace for the `Agentic Orchestration Benchmark` project.
+Area di lavoro privata per la valutazione del progetto
+`Agentic Orchestration Benchmark`.
 
-The repository keeps reserved tests outside the main source repository. A
-local, controlled evaluator runs the canonical public and reserved suites against
-a submission. It writes inputs, raw reports and validated evidence under `runs/`.
+Il repository mantiene i test riservati al di fuori del repository principale
+del codice sorgente. Un valutatore locale e controllato esegue le suite canoniche
+pubbliche e riservate su una submission. Scrive input, report grezzi ed evidenze
+validate sotto `runs/`.
 
-## Structure
+## Struttura
 
-- `evaluator/`: local evaluator in Windows PowerShell 5.1. The entry point is
-  `Invoke-Evaluation.ps1`. Tests are in `evaluator/tests/`, and usage is described
-  in `evaluator/README.md`.
-- `manifests/`: frozen manifests of the reserved suite (`reserved-2`), of the
-  baseline plus public suites (`public-1`) and of the tool versions
-  (`toolchain-1`: Node, TypeScript, Vitest). The evaluator stops with
-  `evaluator-error` before any phase if the tools do not match.
-- `schemas/`: JSON schema of the evaluation summary.
-- `reserved/`: private Vitest controls and their configurations.
-- `fixture/`: frozen submission used by the reserved smoke test.
-- `fixtures/controls/`: compliant and violating submissions for each reserved control.
-- `docs/`: evaluator contract, threat model, control-matrix audit and handoff.
-  The documentation is written in Italian.
-- `runs/`: generated evaluation inputs, outputs, and evidence (not versioned).
+- `evaluator/`: valutatore locale in Windows PowerShell 5.1. Il punto di ingresso
+  è `Invoke-Evaluation.ps1`. I test si trovano in `evaluator/tests/` e l'utilizzo
+  è descritto in `evaluator/README.md`.
+- `manifests/`: manifest congelati della suite riservata (`reserved-2`), della
+  baseline con le suite pubbliche (`public-1`) e delle versioni degli strumenti
+  (`toolchain-1`: Node, TypeScript, Vitest). Il valutatore si arresta con
+  `evaluator-error` prima di qualsiasi fase se gli strumenti non corrispondono.
+- `schemas/`: schema JSON del riepilogo della valutazione.
+- `reserved/`: controlli Vitest privati e relative configurazioni.
+- `fixture/`: submission congelata usata dallo smoke test riservato.
+- `fixtures/controls/`: submission conformi e non conformi per ciascun controllo
+  riservato.
+- `docs/`: contratto del valutatore, modello delle minacce, audit della matrice
+  dei controlli e passaggio di consegne. La documentazione è scritta in italiano.
+- `runs/`: input, output ed evidenze generati dalle valutazioni (non versionati).
 
-## Evaluator status
+## Stato del valutatore
 
-The evaluator is implemented and covered by unit, acceptance and control-matrix
-tests. It has been exercised with test solutions and with all 39 control
-fixtures. It has not yet been used for pilot runs or official evaluations.
+Il valutatore è implementato e coperto da test unitari, di accettazione e della
+matrice dei controlli. È stato provato con soluzioni di test e con tutte le 39
+fixture dei controlli. Non è ancora stato usato per esecuzioni pilota o
+valutazioni ufficiali.
 
-The previous Windows Sandbox architecture is retired. It is documented in
-`docs/archive/windows-sandbox-evaluator.md`.
+La precedente architettura basata su Windows Sandbox è stata dismessa. È
+documentata in `docs/archive/windows-sandbox-evaluator.md`.
 
-The evaluator needs two external locations, both passed as parameters. They are
-kept in `C:\repos\AgenticOrchestrationTools`, outside the main repository that
-agents can access:
+Il valutatore richiede due percorsi esterni, entrambi forniti come parametri. Si
+trovano in `C:\repos\AgenticOrchestrationTools`, al di fuori del repository
+principale accessibile agli agenti:
 
-- `baseline-ddf08e8`: the frozen `BenchmarkTarget` baseline;
-- `tools\node_modules`: TypeScript and Vitest.
+- `baseline-ddf08e8`: la baseline congelata di `BenchmarkTarget`;
+- `tools\node_modules`: TypeScript e Vitest.
 
-This repository has no dependencies of its own.
+Questo repository non ha dipendenze proprie.
 
-## Development handoff
+## Passaggio di consegne dello sviluppo
 
-The current owner, verified status, remaining work, and next authorized step are
-recorded in `docs/handoff.md`. Keep that document updated whenever development
-responsibility changes.
+Il responsabile attuale, lo stato verificato, il lavoro rimanente e il prossimo
+passo autorizzato sono registrati in `docs/handoff.md`. Mantenere aggiornato quel
+documento a ogni cambio di responsabilità dello sviluppo.
