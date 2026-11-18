@@ -188,7 +188,8 @@ function New-PublicManifestObject {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$BaselinePath,
-        [Parameter(Mandatory)][string]$ToolsNodeModulesPath
+        [Parameter(Mandatory)][string]$ToolsNodeModulesPath,
+        [string]$DeclaredCommit
     )
 
     $scopes = [ordered]@{}
@@ -213,10 +214,10 @@ function New-PublicManifestObject {
     return [ordered]@{
         schemaVersion = 1
         suite         = 'public'
-        suiteVersion  = 'public-1'
+        suiteVersion  = 'public-2'
         hashing       = [ordered]@{ algorithm = 'SHA-256'; lineEndings = 'CRLF normalizzato in LF prima dell''hash' }
         baseline      = [ordered]@{
-            declaredCommit   = $git.commit
+            declaredCommit   = if ($DeclaredCommit) { $DeclaredCommit.ToLowerInvariant() } else { $git.commit }
             workingTreeClean = $git.workingTreeClean
             files            = @(Get-BaselineFileEntries -BaselinePath $BaselinePath)
         }

@@ -14,7 +14,7 @@ validate sotto `runs/`.
   è `Invoke-Evaluation.ps1`. I test si trovano in `evaluator/tests/` e l'utilizzo
   è descritto in `evaluator/README.md`.
 - `manifests/`: manifest congelati della suite riservata (`reserved-2`), della
-  baseline con le suite pubbliche (`public-1`) e delle versioni degli strumenti
+  baseline con le suite pubbliche (`public-2`) e delle versioni degli strumenti
   (`toolchain-1`: Node, TypeScript, Vitest). Il valutatore si arresta con
   `evaluator-error` prima di qualsiasi fase se gli strumenti non corrispondono.
 - `schemas/`: schema JSON del riepilogo della valutazione.
@@ -40,8 +40,9 @@ Il valutatore richiede due percorsi esterni, entrambi forniti come parametri. Si
 trovano in `C:\repos\AgenticOrchestrationTools`, al di fuori del repository
 principale accessibile agli agenti:
 
-- `baseline-ddf08e8`: la baseline congelata di `BenchmarkTarget`;
-- `tools\node_modules`: TypeScript e Vitest.
+- `baseline-aee8d11`: la baseline congelata di `BenchmarkTarget`;
+- `C:\AgenticAIToolchain\node-v24.17.0-lock-586b704e\packages\node_modules`:
+  TypeScript e Vitest della toolchain definitiva.
 
 Questo repository non ha dipendenze proprie.
 

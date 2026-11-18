@@ -19,7 +19,10 @@ function Get-TreeSnapshot {
 function New-Submission {
     param([string]$Path, [switch]$ImplementT1, [switch]$Broken, [string]$ExtraSource = '')
     New-Item -ItemType Directory -Force -Path "$Path\src" | Out-Null
-    foreach ($name in 'package.json', 'package-lock.json', 'tsconfig.json') { Copy-Item (Join-Path $BaselinePath $name) "$Path\$name" }
+    foreach ($name in 'package.json', 'package-lock.json', 'tsconfig.json') {
+        Copy-Item (Join-Path $BaselinePath $name) "$Path\$name"
+        (Get-Item -LiteralPath "$Path\$name").IsReadOnly = $false
+    }
     $source = [System.IO.File]::ReadAllText((Join-Path $BaselinePath 'src\index.ts'))
     if ($ImplementT1) {
         $method = @'

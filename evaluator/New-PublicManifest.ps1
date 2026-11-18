@@ -21,6 +21,7 @@ deve cambiare silenziosamente.
 param(
     [Parameter(Mandatory)][string]$BaselinePath,
     [Parameter(Mandatory)][string]$ToolsNodeModulesPath,
+    [ValidatePattern('^[0-9a-fA-F]{40}$|^[0-9a-fA-F]{64}$')][string]$DeclaredCommit,
     [string]$OutputPath,
     [switch]$Force
 )
@@ -36,7 +37,7 @@ try {
     if ((Test-Path -LiteralPath $OutputPath) -and -not $Force) {
         throw "Il manifest esiste gia'. Usare -Force solo per creare una nuova versione della suite."
     }
-    $manifest = New-PublicManifestObject -BaselinePath $BaselinePath -ToolsNodeModulesPath $ToolsNodeModulesPath
+    $manifest = New-PublicManifestObject -BaselinePath $BaselinePath -ToolsNodeModulesPath $ToolsNodeModulesPath -DeclaredCommit $DeclaredCommit
     $json = ($manifest | ConvertTo-Json -Depth 10).Replace("`r`n", "`n") + "`n"
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutputPath) | Out-Null
     [System.IO.File]::WriteAllText($OutputPath, $json, (New-Object System.Text.UTF8Encoding($false)))

@@ -1,22 +1,22 @@
 {
     "schemaVersion":  1,
     "suite":  "public",
-    "suiteVersion":  "public-1",
+    "suiteVersion":  "public-2",
     "hashing":  {
                     "algorithm":  "SHA-256",
                     "lineEndings":  "CRLF normalizzato in LF prima dell\u0027hash"
                 },
     "baseline":  {
-                     "declaredCommit":  "ddf08e8759ef172a5b654168a1d2d6b66c9cd248",
-                     "workingTreeClean":  true,
+                     "declaredCommit":  "aee8d1162bb496895990a00095cc14c2651ff752",
+                     "workingTreeClean":  "unavailable",
                      "files":  [
                                    {
                                        "path":  "package.json",
-                                       "sha256":  "a301939014881cd53ea1d635f1261c8fdc7155f91d9fc1b5352144676b6dfa39"
+                                       "sha256":  "b1e216f0c2331114401929075f5c2798d7f540bec43e8fa95967148f660443da"
                                    },
                                    {
                                        "path":  "package-lock.json",
-                                       "sha256":  "1b283562b7e02de0664c74c6f59de9456ab7d3cee211ae7a2bdc6111e333bccd"
+                                       "sha256":  "586b704e70cb3fcf9e99a889d627fae98c6880ce042247cd4d37471594b5e739"
                                    },
                                    {
                                        "path":  "src/index.ts",

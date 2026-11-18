@@ -12,8 +12,8 @@ controlli, ma non ancora usato per prove pilota o valutazioni ufficiali.
 
 Strumenti e baseline da usare stanno fuori dal repository principale, a cui gli agenti accedono:
 
-- `-ToolsNodeModulesPath C:\repos\AgenticOrchestrationTools\tools\node_modules`;
-- `-BaselinePath C:\repos\AgenticOrchestrationTools\baseline-ddf08e8`.
+- `-ToolsNodeModulesPath C:\AgenticAIToolchain\node-v24.17.0-lock-586b704e\packages\node_modules`;
+- `-BaselinePath C:\repos\AgenticOrchestrationTools\baseline-aee8d11`.
 
 Vitest viene sempre eseguito con `--cache=false --fsModuleCache=false`, perche le sue cache
 conterrebbero i moduli trasformati dei test riservati.
@@ -150,7 +150,7 @@ tutti superati, 1 altrimenti).
 
 ## Manifest della baseline e delle suite pubbliche
 
-`manifests/public-suite.manifest.json` (versione `public-1`) congela 19 file della
+`manifests/public-suite.manifest.json` (versione `public-2`) congela 19 file della
 baseline (`package.json`, lock file, `tsconfig.json`, `vitest.public*.ts`, `src/`,
 `tests/public/`) e, per `common` e `T1`..`T6`, i test pubblici attesi. Gli
 identificatori vengono da un'esecuzione reale di Vitest con reporter JSON sulla
